@@ -82,7 +82,7 @@ var pp = function() {
 					
 					var context = this.getContext(this.getWindowFromChannel(subject));
 
-					if (context != null && context.cfg.active) {
+					if (context?.cfg.active) {
 						var newListener = new preparseListener();
 						newListener.worker = context.worker;
 						newListener.originalListener = subject.setNewListener(newListener);
@@ -128,7 +128,7 @@ var pp = function() {
 			} catch (e) { }
 		   
 			try {
-				if (aChannel && aChannel.loadGroup && aChannel.loadGroup.notificationCallbacks) {
+				if (aChannel?.loadGroup?.notificationCallbacks) {
 					return aChannel.loadGroup.notificationCallbacks.getInterface(Ci.nsILoadContext);
 				}
 			} catch (e) { }
