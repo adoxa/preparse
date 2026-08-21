@@ -2,9 +2,6 @@
 	Components.utils.import("resource://preparse_js/module.js");
 
 	function selected_config() {
-		if (gBrowser.selectedBrowser == null) {
-			return null;
-		}
 		var browser = gBrowser.selectedBrowser;
 		if (browser != null) {
 			return preparse.getConfig(browser);
