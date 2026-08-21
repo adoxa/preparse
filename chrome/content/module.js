@@ -235,6 +235,16 @@ var pp = function() {
 		var onMessage = function(event) {
 			if (event.data[1]) {
 				preparse.importmap = event.data[1];
+				for (let i in preparse.importmap) {
+					let imp = preparse.importmap[i];
+					if (!(imp.startsWith("http") || imp[0] == "/")) {
+						let path = request.URI.filePath;
+						if (!path.endsWith("/")) {
+							path += "/../";
+						}
+						preparse.importmap[i] = path + imp;
+					}
+				}
 			}
 			var new_js = event.data[0];
 			var storageStream = CCIN("@mozilla.org/storagestream;1", "nsIStorageStream");
