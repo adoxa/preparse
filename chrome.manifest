@@ -1,0 +1,3 @@
+content preparse chrome/content/
+overlay chrome://browser/content/browser.xul chrome://preparse/content/firefoxOverlay.xul
+resource preparse_js chrome/content/
