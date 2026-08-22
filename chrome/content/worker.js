@@ -56,6 +56,11 @@ function rename(script, importmap) {
 		}
 		new_script += script.slice(end, classes[i+1]?.index);
 	}
+
+	// If .commit() occurs soon after transaction, assume it's an IDBTransaction
+	// and remove it.
+	new_script = new_script.replace(/(transaction\(.{1,200}\.commit)\(\)/gs, "$1");
+
 	return new_script;
 }
 
