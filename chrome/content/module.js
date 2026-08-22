@@ -83,7 +83,7 @@ var pp = function() {
 					var context = this.getContext(this.getWindowFromChannel(subject));
 
 					if (context?.cfg.active) {
-						var newListener = new preparseListener();
+						var newListener = new preparseListener(context.cfg);
 						newListener.worker = context.worker;
 						newListener.originalListener = subject.setNewListener(newListener);
 					}
@@ -163,7 +163,8 @@ var pp = function() {
 	}
 
 
-	function preparseListener() {
+	function preparseListener(cfg) {
+		this.cfg = cfg;
 		this.intercept = false;
 		this.receivedData = [];
 	}
@@ -228,21 +229,21 @@ var pp = function() {
 	
 	preparseListener.prototype.spawnWorker = function(request, context, statusCode) {
 		var worker = new this.worker("chrome://preparse/content/worker.js");
-		worker.postMessage([this.receivedData, this.html, preparse.importmap]);
+		worker.postMessage([this.receivedData, this.html, this.cfg.importmap]);
 		this.receivedData = null;
 		
 		var t = this;
 		var onMessage = function(event) {
 			if (event.data[1]) {
-				preparse.importmap = event.data[1];
-				for (let i in preparse.importmap) {
-					let imp = preparse.importmap[i];
+				t.cfg.importmap = event.data[1];
+				for (let i in t.cfg.importmap) {
+					let imp = t.cfg.importmap[i];
 					if (!(imp[0] == "/" || /^\w+:/.test(imp))) {
 						let path = request.URI.filePath;
 						if (!path.endsWith("/")) {
 							path += "/../";
 						}
-						preparse.importmap[i] = path + imp;
+						t.cfg.importmap[i] = path + imp;
 					}
 				}
 			}
