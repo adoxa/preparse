@@ -237,7 +237,7 @@ var pp = function() {
 				preparse.importmap = event.data[1];
 				for (let i in preparse.importmap) {
 					let imp = preparse.importmap[i];
-					if (!(imp.startsWith("http") || imp[0] == "/")) {
+					if (!(imp[0] == "/" || /^\w+:/.test(imp))) {
 						let path = request.URI.filePath;
 						if (!path.endsWith("/")) {
 							path += "/../";
