@@ -2,7 +2,7 @@ var EXPORTED_SYMBOLS = ["preparse"];
 
 
 preparse = {
-	windows : [],
+	windows: [],
 	
 	add: function(browser, worker) {
 		this.windows.push({browser: browser, cfg: {active: false}, worker: worker});
@@ -36,7 +36,7 @@ var pp = function() {
 	
 		
 	var prefsObserver = {
-		observe : function(subject, topic, data) {
+		observe: function(subject, topic, data) {
 			if (topic != "nsPref:changed") {
 				return;
 			}
@@ -55,14 +55,14 @@ var pp = function() {
 			contentTypes = str.split(",");
 		},
 		
-		register : function() {
+		register: function() {
 			this.prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService).getBranch("extensions.preparse.");
 			this.prefs.QueryInterface(Components.interfaces.nsIPrefBranch2);
 			this.prefs.addObserver("", this, false);
 			this.updateContentTypes();
 		},
 		
-		QueryInterface : function(aIID) {
+		QueryInterface: function(aIID) {
 			if (aIID.equals(Ci.nsIObserver) ||
 				aIID.equals(Ci.nsISupports))
 			{
@@ -103,7 +103,7 @@ var pp = function() {
 			return null;
 		},
 		
-		getContext : function(win)
+		getContext: function(win)
 		{
 			for (; win; win = win.parent) {
 				for (var i = 0; i < preparse.windows.length; ++i) {
@@ -146,7 +146,7 @@ var pp = function() {
 				"http-on-examine-response", false);
 		},
 		
-		QueryInterface : function(aIID) {
+		QueryInterface: function(aIID) {
 			if (aIID.equals(Ci.nsIObserver) ||
 				aIID.equals(Ci.nsISupports))
 			{
