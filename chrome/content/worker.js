@@ -61,6 +61,16 @@ function rename(script, importmap) {
 	// and remove it.
 	new_script = new_script.replace(/(transaction\(.{1,200}\.commit)\(\)/gs, "$1");
 
+	// Provide import.meta.resolve, if necessary.
+	if (new_script.includes("import.meta.resolve")) {
+		let make_map = '', use_map = '';
+		if (importmap) {
+			make_map = `import.meta.map=${JSON.stringify(importmap)};`;
+			use_map = 'u=import.meta.map[u]||u;';
+		}
+		new_script = `${make_map}import.meta.resolve=function(u){${use_map}return new URL(u,import.meta.url).href};` + new_script;
+	}
+
 	return new_script;
 }
 
