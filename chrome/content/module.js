@@ -1,5 +1,6 @@
 var EXPORTED_SYMBOLS = ["preparse"];
 
+//Components.utils.import("resource://gre/modules/Console.jsm");
 
 preparse = {
 	windows: [],
@@ -174,8 +175,6 @@ var pp = function() {
 			this.html = false;
 
 			if (subject instanceof Components.interfaces.nsIHttpChannel) {
-				//Components.utils.import("resource://gre/modules/Console.jsm");
-				//console.log(subject.URI.path);
 				var contentType = subject.getResponseHeader("Content-Type");
 				if (contentType == null) {
 					return false;
