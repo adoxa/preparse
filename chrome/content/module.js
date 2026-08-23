@@ -84,6 +84,9 @@ var pp = function() {
 					var context = this.getContext(this.getWindowFromChannel(subject));
 
 					if (context?.cfg.active) {
+						if (subject.isMainDocumentChannel) {
+							delete context.cfg.importmap;
+						}
 						var newListener = new preparseListener(context.cfg);
 						newListener.worker = context.worker;
 						newListener.originalListener = subject.setNewListener(newListener);
