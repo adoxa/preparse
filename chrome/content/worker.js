@@ -62,9 +62,10 @@ function rename(script, importmap) {
 		new_script += script.slice(end, classes[i+1]?.index);
 	}
 
-	// If .commit() occurs soon after transaction, assume it's an IDBTransaction
-	// and remove it.
-	new_script = new_script.replace(/(transaction\(.{1,200}\.commit)\(\)/gs, "$1");
+	// If ".commit()" occurs, add a stub for IDBTransaction, should it be that.
+	if (!IDBTransaction.prototype.commit && new_script.includes(".commit()")) {
+		new_script = 'IDBTransaction.prototype.commit=()=>{};' + new_script;
+	}
 
 	// Provide import.meta.resolve, if necessary.
 	if (new_script.includes("import.meta.resolve")) {
