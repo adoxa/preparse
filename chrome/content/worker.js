@@ -43,13 +43,18 @@ function rename(script, importmap) {
 		script = script.replaceAll(/from\s*(['"])(.*?)\1/g, map_import);
 	}
 
+	// Prefix private elements from extended classes with the new class name.
+	// E.g. "class Y extends X { #e }" becomes "#Y_e".  It doesn't do a syntax
+	// scan, only detecting one or two characters after a hash, with a symbol
+	// after that.	That should eliminate RGB colors (needing three characters)
+	// and hopefully ids won't be matched.
 	let classes = Array.from(script.matchAll(/([$\w]+)\s*=\s*(?:[$\w]+\))?class(?: [$\w]+)? extends|class ([$\w]+) extends/g));
 	let new_script = script.slice(0, classes[0]?.index);
 	for (let i = 0; i < classes.length; ++i) {
 		let id = classes[i][1] || classes[i][2];
 		let start = classes[i].index;
 		let end = region(script, start);
-		new_script += script.slice(start, end).replace(/#(\w\w?\W)/g, `#${id}_$1`);
+		new_script += script.slice(start, end).replace(/#([$a-zA-Z_][$\w]?\W)/g, `#${id}_$1`);
 		// Skip nested classes.
 		while (end > classes[i+1]?.index) {
 			++i;
