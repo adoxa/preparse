@@ -77,6 +77,55 @@ function rename(script, importmap) {
 		new_script = `${make_map}import.meta.resolve=function(u){${use_map}return new URL(u,import.meta.url).href};` + new_script;
 	}
 
+	// Provide RelativeTimeFormat.formatToParts, if assumed necessary.
+	if (!Intl.RelativeTimeFormat.prototype.formatToParts && new_script.includes(".formatToParts")) {
+		/*
+			Intl.RelativeTimeFormat.prototype.formatToParts = function(value, unit) {
+				value = this.format(value, unit);
+				if (unit.endsWith("s")) {
+					unit = unit.slice(0, -1);
+				}
+				let parts = [], sparts = value.split(/(\\d+)/), int = false;
+				for (let i = 0; i < sparts.length; ++i) {
+					let part = sparts[i];
+					if (/\\d/.test(part[0])) {
+						if (!int) {
+							parts.push({type: "integer", value: part, unit});
+							int = true;
+						} else {
+							parts[i-1].type = "decimal";
+							parts[i-1].unit = unit;
+							parts.push({type: "fraction", value: part, unit});
+						}
+					} else {
+						parts.push({type: "literal", value: part});
+					}
+				}
+				return parts;
+			};
+		*/
+		new_script =
+			'Intl.RelativeTimeFormat.prototype.formatToParts=function(v,u){' +
+				'v=this.format(v,u);' +
+				'u.endsWith("s")&&(u=u.slice(0,-1));' +
+				'let p=[],s=v.split(/(\\d+)/),I=!1;' +
+				'for (let i=0;i<s.length;++i){' +
+					'let P={value:s[i]};' +
+					'if(/\\d/.test(s[i][0]))' +
+						'if(!I)' +
+							'P.type="integer",P.unit=u,' +
+							'I=!0;' +
+						'else ' +
+							'p[i-1].type="decimal",' +
+							'p[i-1].unit=P.unit=u,' +
+							'P.type="fraction";' +
+					'else P.type="literal";' +
+					'p.push(P)' +
+				'}' +
+				'return p' +
+			'};' + new_script;
+	}
+
 	return new_script;
 }
 
