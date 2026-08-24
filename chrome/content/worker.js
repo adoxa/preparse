@@ -126,6 +126,50 @@ function rename(script, importmap) {
 			'};' + new_script;
 	}
 
+	// If "narrowSymbol" occurs, provide it for Intl.NumberFormat.
+	if (new_script.includes("narrowSymbol")) {
+		let unsupported;
+		try {
+			new Intl.NumberFormat(undefined, {
+				style: "currency", currency: "USD", currencyDisplay: "narrowSymbol"
+			});
+		} catch (e) {
+			unsupported = true;
+		}
+		if (unsupported) {
+			new_script = `
+				if (!window.PP_Intl_NumberFormat) {
+					class PP_Intl_NumberFormat extends Intl.NumberFormat {
+						constructor(locales, options) {
+							let narrow;
+							if (options?.currencyDisplay == "narrowSymbol") {
+								options.currencyDisplay = "symbol";
+								narrow = true;
+							}
+							super(locales, options);
+							this.narrow = narrow;
+						}
+						format(number) {
+							let result= super.format(number);
+							if (this.narrow) {
+								result = result.replace(/^\\w*/, "");
+							}
+							return result;
+						}
+						formatToParts(number) {
+							let parts = super.formatToParts(number);
+							if (this.narrow) {
+								parts[0].value = parts[0].value.replace(/^\\w*/, "");
+							}
+							return parts;
+						}
+					}
+					Intl.NumberFormat = PP_Intl_NumberFormat;
+				}
+			` + new_script;
+		}
+	}
+
 	return new_script;
 }
 
