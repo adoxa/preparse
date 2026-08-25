@@ -85,24 +85,28 @@ function rename(script, importmap) {
 	if (!Intl.RelativeTimeFormat.prototype.formatToParts && new_script.includes(".formatToParts")) {
 		new_script = raw`
 			Intl.RelativeTimeFormat.prototype.formatToParts = function(value, unit) {
+				let fraction = value % 1;
 				value = this.format(value, unit);
 				if (unit.endsWith("s")) {
 					unit = unit.slice(0, -1);
 				}
-				let parts = [], sparts = value.split(/(\d+)/), int = false;
-				for (let i = 0; i < sparts.length; ++i) {
-					let part = sparts[i];
-					if (/\d/.test(part[0])) {
-						if (!int) {
-							parts.push({type: "integer", value: part, unit});
-							int = true;
-						} else {
-							parts[i-1].type = "decimal";
-							parts[i-1].unit = unit;
-							parts.push({type: "fraction", value: part, unit});
+				let parts = value.split(/(\d+)/).map(p => ({
+					type: /\d/.test(p[0]) ? "integer" : "literal",
+					value: p
+				}));
+				for (let i = parts.length; --i >= 0;) {
+					if (parts[i].type == "integer") {
+						if (fraction) {
+							parts[i].type = "fraction";
+							fraction = false;
 						}
-					} else {
-						parts.push({type: "literal", value: part});
+						parts[i].unit = unit;
+					} else if (parts[i+1]?.type == "fraction") {
+						parts[i].type = "decimal";
+						parts[i].unit = unit;
+					} else if (parts[i-1]?.type == "integer" && parts[i+1]?.type == "integer") {
+						parts[i].type = "group";
+						parts[i].unit = unit;
 					}
 				}
 				return parts;
