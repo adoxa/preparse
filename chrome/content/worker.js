@@ -64,96 +64,10 @@ function rename(script, importmap) {
 		new_script += script.slice(end, classes[i+1]?.index);
 	}
 
-	// If ".commit()" occurs, add a stub for IDBTransaction, should it be that.
-	if (!IDBTransaction.prototype.commit && new_script.includes(".commit()")) {
-		new_script = 'IDBTransaction.prototype.commit=()=>{};' + new_script;
-	}
-
 	// Provide import.meta.resolve, if necessary.
 	if (new_script.includes("import.meta.resolve")) {
 		let use_map = importmap ? "u=window.importmap[u]||u;" : "";
 		new_script = `import.meta.resolve=function(u){${use_map}return new URL(u,import.meta.url).href};` + new_script;
-	}
-
-	function raw(strings) {
-		return strings.raw[0];
-	}
-
-	// Provide RelativeTimeFormat.formatToParts, if assumed necessary.
-	if (!Intl.RelativeTimeFormat.prototype.formatToParts && new_script.includes(".formatToParts")) {
-		new_script = raw`
-			Intl.RelativeTimeFormat.prototype.formatToParts = function(value, unit) {
-				let fraction = value % 1;
-				value = this.format(value, unit);
-				if (unit.endsWith("s")) {
-					unit = unit.slice(0, -1);
-				}
-				let parts = value.split(/(\d+)/).map(p => ({
-					type: /\d/.test(p[0]) ? "integer" : "literal",
-					value: p
-				}));
-				for (let i = parts.length; --i >= 0;) {
-					if (parts[i].type == "integer") {
-						if (fraction) {
-							parts[i].type = "fraction";
-							fraction = false;
-						}
-						parts[i].unit = unit;
-					} else if (parts[i+1]?.type == "fraction") {
-						parts[i].type = "decimal";
-						parts[i].unit = unit;
-					} else if (parts[i-1]?.type == "integer" && parts[i+1]?.type == "integer") {
-						parts[i].type = "group";
-						parts[i].unit = unit;
-					}
-				}
-				return parts;
-			};
-		` + new_script;
-	}
-
-	// If "narrowSymbol" occurs, provide it for Intl.NumberFormat.
-	if (new_script.includes("narrowSymbol")) {
-		let unsupported;
-		try {
-			new Intl.NumberFormat(undefined, {
-				style: "currency", currency: "USD", currencyDisplay: "narrowSymbol"
-			});
-		} catch (e) {
-			unsupported = true;
-		}
-		if (unsupported) {
-			new_script = raw`
-				if (!window.PP_Intl_NumberFormat) {
-					class PP_Intl_NumberFormat extends Intl.NumberFormat {
-						constructor(locales, options) {
-							let narrow;
-							if (options?.currencyDisplay == "narrowSymbol") {
-								options.currencyDisplay = "symbol";
-								narrow = true;
-							}
-							super(locales, options);
-							this.narrow = narrow;
-						}
-						format(number) {
-							let result= super.format(number);
-							if (this.narrow) {
-								result = result.replace(/^\w*/, "");
-							}
-							return result;
-						}
-						formatToParts(number) {
-							let parts = super.formatToParts(number);
-							if (this.narrow) {
-								parts[0].value = parts[0].value.replace(/^\w*/, "");
-							}
-							return parts;
-						}
-					}
-					Intl.NumberFormat = PP_Intl_NumberFormat;
-				}
-			` + new_script;
-		}
 	}
 
 	return new_script;

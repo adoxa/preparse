@@ -237,6 +237,9 @@ var pp = function() {
 		var t = this;
 		var onMessage = function(event) {
 			var new_js = event.data[0];
+			if (request.isMainDocumentChannel) {
+				new_js = addPolyfills(new_js);
+			}
 			if (event.data[1]) {
 				t.cfg.importmap = event.data[1];
 				for (let i in t.cfg.importmap) {
@@ -297,4 +300,84 @@ var pp = function() {
 	
 	prefsObserver.register();
 	httpRequestObserver.register();
+
+
+	function raw(strings) {
+		return strings.raw[0];
+	}
+
+	function addPolyfills(html) {
+		let polyfills = "";
+		if (!IDBTransaction.prototype.commit) {
+			polyfills += `IDBTransaction.prototype.commit = () => {};`;
+		}
+		if (!Intl.RelativeTimeFormat.prototype.formatToParts) {
+			polyfills += raw`
+				Intl.RelativeTimeFormat.prototype.formatToParts = function(value, unit) {
+					let fraction = value % 1;
+					value = this.format(value, unit);
+					if (unit.endsWith("s")) {
+						unit = unit.slice(0, -1);
+					}
+					let parts = value.split(/(\d+)/).map(p => ({
+						type: /\d/.test(p[0]) ? "integer" : "literal",
+						value: p
+					}));
+					for (let i = parts.length; --i >= 0;) {
+						if (parts[i].type == "integer") {
+							if (fraction) {
+								parts[i].type = "fraction";
+								fraction = false;
+							}
+							parts[i].unit = unit;
+						} else if (parts[i+1]?.type == "fraction") {
+							parts[i].type = "decimal";
+							parts[i].unit = unit;
+						} else if (parts[i-1]?.type == "integer" && parts[i+1]?.type == "integer") {
+							parts[i].type = "group";
+							parts[i].unit = unit;
+						}
+					}
+					return parts;
+				};
+			`;
+		}
+		try {
+			new Intl.NumberFormat(undefined, {
+				style: "currency", currency: "USD", currencyDisplay: "narrowSymbol"
+			});
+		} catch (e) {
+			polyfills += raw`
+				Intl.NumberFormat = class extends Intl.NumberFormat {
+					constructor(locales, options) {
+						let narrow;
+						if (options?.currencyDisplay == "narrowSymbol") {
+							options.currencyDisplay = "symbol";
+							narrow = true;
+						}
+						super(locales, options);
+						this.narrow = narrow;
+					}
+					format(number) {
+						let result= super.format(number);
+						if (this.narrow) {
+							result = result.replace(/^\w*/, "");
+						}
+						return result;
+					}
+					formatToParts(number) {
+						let parts = super.formatToParts(number);
+						if (this.narrow) {
+							parts[0].value = parts[0].value.replace(/^\w*/, "");
+						}
+						return parts;
+					}
+				};
+			`;
+		}
+		// Place it before the first script, to prevent moving a possible
+		// charset definition too far from the start (if there is no script
+		// then it's not necessary).
+		return html.replace("<script", `<script>${polyfills}</script>$&`);
+	}
 }();
