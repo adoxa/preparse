@@ -10,6 +10,8 @@ onmessage = function(event) {
 				script = script.trim();
 				if (tag.includes("importmap")) {
 					imports = importmap = JSON.parse(script).imports;
+					script = "window.importmap = [[IMPORTMAP]]";
+					tag = tag.replace("importmap", "");
 				} else if (script.length) {
 					script = rename(script, importmap);
 				}
@@ -69,12 +71,8 @@ function rename(script, importmap) {
 
 	// Provide import.meta.resolve, if necessary.
 	if (new_script.includes("import.meta.resolve")) {
-		let make_map = '', use_map = '';
-		if (importmap) {
-			make_map = `import.meta.map=${JSON.stringify(importmap)};`;
-			use_map = 'u=import.meta.map[u]||u;';
-		}
-		new_script = `${make_map}import.meta.resolve=function(u){${use_map}return new URL(u,import.meta.url).href};` + new_script;
+		let use_map = importmap ? "u=window.importmap[u]||u;" : "";
+		new_script = `import.meta.resolve=function(u){${use_map}return new URL(u,import.meta.url).href};` + new_script;
 	}
 
 	function raw(strings) {

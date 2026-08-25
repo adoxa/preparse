@@ -236,6 +236,7 @@ var pp = function() {
 		
 		var t = this;
 		var onMessage = function(event) {
+			var new_js = event.data[0];
 			if (event.data[1]) {
 				t.cfg.importmap = event.data[1];
 				for (let i in t.cfg.importmap) {
@@ -248,8 +249,8 @@ var pp = function() {
 						t.cfg.importmap[i] = path + imp;
 					}
 				}
+				new_js = new_js.replace("[[IMPORTMAP]]", JSON.stringify(t.cfg.importmap));
 			}
-			var new_js = event.data[0];
 			var storageStream = CCIN("@mozilla.org/storagestream;1", "nsIStorageStream");
 			storageStream.init(8192, new_js.length, null);
 			if (new_js.length) {
