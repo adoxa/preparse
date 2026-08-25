@@ -358,17 +358,25 @@ var pp = function() {
 						super(locales, options);
 						this.narrow = narrow;
 					}
+					static makeNarrow(fmt) {
+						// There's "Cg." for Caribbean guilder.
+						let narrow = fmt.replace(/^[\sA-Za-z.]*/, "");
+						if (/\D/.test(narrow[0])) {
+							return narrow;
+						}
+						return fmt;
+					}
 					format(number) {
 						let result= super.format(number);
 						if (this.narrow) {
-							result = result.replace(/^\w*/, "");
+							return Intl.NumberFormat.makeNarrow(result);
 						}
 						return result;
 					}
 					formatToParts(number) {
 						let parts = super.formatToParts(number);
 						if (this.narrow) {
-							parts[0].value = parts[0].value.replace(/^\w*/, "");
+							parts[0].value = Intl.NumberFormat.makeNarrow(parts[0].value);
 						}
 						return parts;
 					}
