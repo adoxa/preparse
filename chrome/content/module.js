@@ -302,8 +302,8 @@ var pp = function() {
 	httpRequestObserver.register();
 
 
-	function raw(strings) {
-		return strings.raw[0];
+	function trim(strings) {
+		return strings.raw[0].replace(/\/\/.*$/gm, "").replace(/\s{2,}/g, " ");
 	}
 
 	function addPolyfills(html) {
@@ -312,7 +312,7 @@ var pp = function() {
 			polyfills += `IDBTransaction.prototype.commit = () => {};`;
 		}
 		if (!Intl.RelativeTimeFormat.prototype.formatToParts) {
-			polyfills += raw`
+			polyfills += trim`
 				Intl.RelativeTimeFormat.prototype.formatToParts = function(value, unit) {
 					let fraction = value % 1;
 					value = this.format(value, unit);
@@ -347,7 +347,7 @@ var pp = function() {
 				style: "currency", currency: "USD", currencyDisplay: "narrowSymbol"
 			});
 		} catch (e) {
-			polyfills += raw`
+			polyfills += trim`
 				Intl.NumberFormat = class extends Intl.NumberFormat {
 					constructor(locales, options) {
 						let narrow;
@@ -386,6 +386,7 @@ var pp = function() {
 		// Place it before the first script, to prevent moving a possible
 		// charset definition too far from the start (if there is no script
 		// then it's not necessary).
-		return html.replace("<script", `<script>${polyfills}</script>$&`);
+		html = html.replace("<script", `<!--Preparse begin--><script>${polyfills}</script><!--Preparse end-->$&`);
+		return html;
 	}
 }();
