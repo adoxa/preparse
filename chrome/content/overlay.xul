@@ -4,8 +4,8 @@
 	<statusbar id="status-bar">
 		<statusbarpanel id="preparseStatus" label="#"/>
 	</statusbar>
-	<menupopup id="menuWebDeveloperPopup">
-		<menu id="appmenu_preparse" label="Preparse">
+	<menupopup id="menu_ToolsPopup">
+		<menu id="appmenu_preparse" label="Preparse" insertafter="devToolsSeparator">
 			<menupopup>
 				<menuitem type="checkbox" checked="false" id="enable_preparse" label="Enable for Current Tab"/>
 				<menuitem type="checkbox" checked="true" id="disable_preparse" label="Disable for Current Tab"/>
