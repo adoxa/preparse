@@ -7,7 +7,7 @@
 			return preparse.getConfig(browser);
 		}
 		return null;
-	};
+	}
 
 	function update_text() {
 		var enabled = get_enabled();
@@ -35,7 +35,7 @@
 			cfg.active = !cfg.active;
 			update_text();
 		}
-	};
+	}
 
 	function set_active(active) {
 		var cfg = selected_config();

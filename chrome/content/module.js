@@ -4,15 +4,15 @@ var EXPORTED_SYMBOLS = ["preparse"];
 
 preparse = {
 	windows: [],
-	
+
 	add: function(browser, worker) {
 		this.windows.push({browser: browser, cfg: {active: false}, worker: worker});
 	},
-	
+
 	getConfig: function(browser) {
 		return this.windows.find(w => w.browser == browser)?.cfg;
 	},
-	
+
 	remove: function(browser) {
 		/* when tabs are migrated we get a TabOpen followed by a TabClose */
 		var i = this.windows.findIndex(w => w.browser == browser);
@@ -26,55 +26,55 @@ var pp = function() {
 
 	const Cc = Components.classes;
 	const Ci = Components.interfaces;
-	
+
 	var contentTypes = ["text/javascript", "application/javascript", "application/x-javascript"];
-	
-		
+
+
 	var prefsObserver = {
 		observe: function(subject, topic, data) {
 			if (topic != "nsPref:changed") {
 				return;
 			}
-			
+
 			if (data == "contenttypes") {
 				this.updateContentTypes();
 			}
 		},
-		
+
 		updateContentTypes: function() {
 			var str = this.prefs.getCharPref("contenttypes");
 			if (str == null) {
 				return;
 			}
-			
+
 			contentTypes = str.split(",");
 		},
-		
+
 		register: function() {
 			this.prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService).getBranch("extensions.preparse.");
 			this.prefs.QueryInterface(Components.interfaces.nsIPrefBranch2);
 			this.prefs.addObserver("", this, false);
 			this.updateContentTypes();
 		},
-		
+
 		QueryInterface: function(aIID) {
 			if (aIID.equals(Ci.nsIObserver) ||
 				aIID.equals(Ci.nsISupports))
 			{
 				return this;
 			}
-	
+
 			throw Components.results.NS_NOINTERFACE;
 		}
 	};
-	
+
 	var httpRequestObserver = {
 		observe: function(subject, topic, data) {
-			if ((topic == 'http-on-examine-response' || topic == 'http-on-examine-cached-response')) {
+			if (topic == 'http-on-examine-response' || topic == 'http-on-examine-cached-response') {
 				if (subject instanceof Ci.nsIHttpChannel) {
 					subject.QueryInterface(Ci.nsITraceableChannel);
 					subject.QueryInterface(Ci.nsIHttpChannel);
-					
+
 					var context = this.getContext(this.getWindowFromChannel(subject));
 
 					if (context?.cfg.active) {
@@ -88,7 +88,7 @@ var pp = function() {
 				}
 			}
 		},
-		
+
 		getWindowFromChannel: function(aChannel) {
 			var ctx = this.getLoadContext(aChannel);
 			if (ctx) {
@@ -97,10 +97,10 @@ var pp = function() {
 				}
 				catch (e) { }
 			}
-			
+
 			return null;
 		},
-		
+
 		getContext: function(win)
 		{
 			for (; win; win = win.parent) {
@@ -108,21 +108,21 @@ var pp = function() {
 				if (entry) {
 					return entry;
 				}
-				
+
 				if (win.parent == win) {
 					return null;
 				}
 			}
-		    return null;
+			return null;
 		},
-		
+
 		getLoadContext: function(aChannel) {
-			try {  
+			try {
 				if (aChannel.notificationCallbacks) {
 					return aChannel.notificationCallbacks.getInterface(Ci.nsILoadContext);
 				}
 			} catch (e) { }
-		   
+
 			try {
 				if (aChannel?.loadGroup?.notificationCallbacks) {
 					return aChannel.loadGroup.notificationCallbacks.getInterface(Ci.nsILoadContext);
@@ -131,7 +131,7 @@ var pp = function() {
 
 			return null;
 		},
-		
+
 		register: function() {
 			var observerService = Cc["@mozilla.org/observer-service;1"]
 				.getService(Ci.nsIObserverService);
@@ -141,21 +141,21 @@ var pp = function() {
 			observerService.addObserver(this,
 				"http-on-examine-response", false);
 		},
-		
+
 		QueryInterface: function(aIID) {
 			if (aIID.equals(Ci.nsIObserver) ||
 				aIID.equals(Ci.nsISupports))
 			{
 				return this;
 			}
-	
+
 			throw Components.results.NS_NOINTERFACE;
 		}
 	};
-	
-	
+
+
 	function CCIN(cName, ifaceName) {
-    	return Cc[cName].createInstance(Ci[ifaceName]);
+		return Cc[cName].createInstance(Ci[ifaceName]);
 	}
 
 
@@ -164,7 +164,7 @@ var pp = function() {
 		this.intercept = false;
 		this.receivedData = [];
 	}
-	
+
 	preparseListener.prototype.isJavascript = function(subject) {
 		try {
 			this.html = false;
@@ -188,12 +188,12 @@ var pp = function() {
 
 		return false;
 	};
-		
+
 	preparseListener.prototype.onDataAvailable = function(request, context, inputStream, offset, count) {
 		if (this.intercept) {
 			var binaryInputStream = CCIN("@mozilla.org/binaryinputstream;1",
 					"nsIBinaryInputStream");
-	
+
 			binaryInputStream.setInputStream(inputStream);
 			var data = binaryInputStream.readBytes(count);
 			this.receivedData.push(data);
@@ -205,7 +205,7 @@ var pp = function() {
 			}
 		}
 	};
-	
+
 	preparseListener.prototype.onStartRequest = function(request, context) {
 		this.intercept = this.isJavascript(request);
 		try {
@@ -214,12 +214,12 @@ var pp = function() {
 			request.cancel(err.result);
 		}
 	};
-	
+
 	preparseListener.prototype.spawnWorker = function(request, context, statusCode) {
 		var worker = new this.worker("chrome://preparse/content/worker.js");
 		worker.postMessage([this.receivedData, this.html, this.cfg.importmap]);
 		this.receivedData = null;
-		
+
 		var t = this;
 		var onMessage = function(event) {
 			var new_js = event.data[0];
@@ -257,7 +257,7 @@ var pp = function() {
 			} catch (err) {
 				// ignore .. this is after onStopRequest.. so there is not much we can do..
 			}
-			
+
 			try {
 				t.originalListener.onStopRequest(request, context, statusCode);
 			} catch (err) {
@@ -266,7 +266,7 @@ var pp = function() {
 		};
 		worker.onmessage = onMessage;
 	};
-		
+
 	preparseListener.prototype.onStopRequest = function(request, context, statusCode) {
 		if (this.intercept) {
 			this.spawnWorker(request, context, statusCode);
@@ -278,7 +278,7 @@ var pp = function() {
 			}
 		}
 	};
-	
+
 	preparseListener.prototype.QueryInterface = function(aIID) {
 			if (aIID.equals(Ci.nsIStreamListener) ||
 				aIID.equals(Ci.nsISupports))
@@ -287,7 +287,7 @@ var pp = function() {
 			}
 			throw Components.results.NS_NOINTERFACE;
 	};
-	
+
 	prefsObserver.register();
 	httpRequestObserver.register();
 
