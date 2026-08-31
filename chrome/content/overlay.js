@@ -63,9 +63,7 @@
 
 	function unload() {
 		var container = gBrowser.tabContainer;
-		for (var i = 0; i < container.childNodes.length; ++i) {
-			preparse.remove(gBrowser.getBrowserForTab(container.childNodes[i]));
-		}
+		container.childNodes.forEach(c => preparse.remove(gBrowser.getBrowserForTab(c)));
 		container.removeEventListener("TabOpen", tabOpen, false);
 		container.removeEventListener("TabClose", tabClose, false);
 		container.removeEventListener("TabSelect", tabSelect, false);
@@ -91,9 +89,7 @@
 			container.addEventListener("TabOpen", tabOpen, false);
 			container.addEventListener("TabClose", tabClose, false);
 			container.addEventListener("TabSelect", tabSelect, false);
-			for (var i = 0; i < container.childNodes.length; ++i) {
-				preparse.add(gBrowser.getBrowserForTab(container.childNodes[i]), window.Worker);
-			}
+			container.childNodes.forEach(c => preparse.add(gBrowser.getBrowserForTab(c), window.Worker));
 		}
 	}
 

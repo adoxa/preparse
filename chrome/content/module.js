@@ -10,20 +10,14 @@ preparse = {
 	},
 	
 	getConfig: function(browser) {
-		for (var i = 0; i < this.windows.length; ++i) {
-			if (this.windows[i].browser == browser) {
-				return this.windows[i].cfg;
-			}
-		}
+		return this.windows.find(w => w.browser == browser)?.cfg;
 	},
 	
 	remove: function(browser) {
 		/* when tabs are migrated we get a TabOpen followed by a TabClose */
-		for (var i = 0; i < this.windows.length; ++i) {
-			if (this.windows[i].browser == browser) {
-				this.windows.splice(i, 1);
-				break;
-			}
+		var i = this.windows.findIndex(w => w.browser == browser);
+		if (i != -1) {
+			this.windows.splice(i, 1);
 		}
 	}
 };
@@ -110,11 +104,9 @@ var pp = function() {
 		getContext: function(win)
 		{
 			for (; win; win = win.parent) {
-				for (var i = 0; i < preparse.windows.length; ++i) {
-					var entry = preparse.windows[i];
-					if (entry.browser.contentWindow == win) {
-						return entry;
-					}
+				var entry = preparse.windows.find(w => w.browser.contentWindow == win);
+				if (entry) {
+					return entry;
 				}
 				
 				if (win.parent == win) {
@@ -188,13 +180,7 @@ var pp = function() {
 					return true;
 				}
 
-				for (var i = 0; i < contentTypes.length; ++i) {
-					if (contentType.includes(contentTypes[i])) {
-						return true;
-					}
-				}
-
-				return false;
+				return contentTypes.some(c => contentType.includes(c));
 			}
 		} catch (err) {
 			// ignore
