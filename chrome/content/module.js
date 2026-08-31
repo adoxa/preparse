@@ -239,6 +239,10 @@ var pp = function() {
 			var new_js = event.data[0];
 			if (request.isMainDocumentChannel) {
 				new_js = addPolyfills(new_js);
+				// Special case: allow Google to work without Javascript.
+				if (request.URI.host.includes("google")) {
+					new_js = googleNoscript(new_js);
+				}
 			}
 			if (event.data[1]) {
 				t.cfg.importmap = event.data[1];
@@ -305,6 +309,29 @@ var pp = function() {
 	function trim(strings) {
 		return strings.raw[0].replace(/\/\/.*$/gm, "").replace(/\s{2,}/g, " ");
 	}
+
+
+	// Google searches use a noscript tag to redirect when Javascript is
+	// disabled.  Replace it so it works, with a bit of tidying up.
+	function googleNoscript(html) {
+		// Move the search options to where they should be (and remove the
+		// script that normally does the move).
+		var src = /(<div data-st-tgt="fb".*?)<script[^>]*>\(function\(\)\{var.*?frt\);\}\)\(\);<\/script><\/div>/s.exec(html);
+		if (src) {
+			html = html.replace(src[0], "");
+			html = html.replace('data-st-cnt="fb">', `$&${src[1]}</div>`);
+		}
+		return html.replace(/<noscript>.*?<\/noscript>/, trim`
+			<noscript>
+				<style>
+					g-loading-icon {
+						display: none !important;
+					}
+				</style>
+			</noscript>
+		`);
+	}
+
 
 	function addPolyfills(html) {
 		let polyfills = "";
