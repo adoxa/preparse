@@ -9,13 +9,13 @@ preparse = {
 
 	prefs: Services.prefs.getBranch("extensions.preparse."),
 
-	add: function(browser, worker) {
-		var state = this.prefs.getCharPref("initstate");
+	add: function(browser, worker, cfg) {
+		var state = cfg?.state ?? this.prefs.getCharPref("initstate");
 		this.windows.push({
 			browser, worker,
 			cfg: {
 				state,
-				active: state == "on",
+				active: cfg?.active ?? state == "on",
 				reload: false,
 				importmap: null,
 				domain: null,

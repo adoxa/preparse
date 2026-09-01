@@ -150,7 +150,11 @@
 
 	function tabOpen(event) {
 		var browser = gBrowser.getBrowserForTab(event.target);
-		preparse.add(browser, window.Worker);
+		var cfg;
+		if (preparse.prefs.getBoolPref("copystate")) {
+			cfg = selected_config();
+		}
+		preparse.add(browser, window.Worker, cfg);
 	}
 
 	function tabClose(event) {
