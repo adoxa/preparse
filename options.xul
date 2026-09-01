@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<setting type="radio" pref="extensions.preparse.initstate"
+	 title="Initial State">
+		<radiogroup>
+			<radio value="auto" label="Auto"/>
+			<radio value="on" label="On"/>
+			<radio value="off" label="Off"/>
+		</radiogroup>
+	</setting>
+	<setting type="string" pref="extensions.preparse.domains"
+	 title="Auto Domains"
+	 desc="Separate domains with commas. Subdomains are automatically included."/>
+</vbox>

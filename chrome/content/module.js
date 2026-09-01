@@ -1,12 +1,26 @@
 var EXPORTED_SYMBOLS = ["preparse"];
 
+Components.utils.import("resource://gre/modules/Services.jsm");
 //Components.utils.import("resource://gre/modules/Console.jsm");
+
 
 preparse = {
 	windows: [],
 
+	prefs: Services.prefs.getBranch("extensions.preparse."),
+
 	add: function(browser, worker) {
-		this.windows.push({browser: browser, cfg: {active: false}, worker: worker});
+		var state = this.prefs.getCharPref("initstate");
+		this.windows.push({
+			browser, worker,
+			cfg: {
+				state,
+				active: state == "on",
+				reload: false,
+				importmap: null,
+				domain: null,
+			}
+		});
 	},
 
 	getConfig: function(browser) {
@@ -27,7 +41,7 @@ var pp = function() {
 	const Cc = Components.classes;
 	const Ci = Components.interfaces;
 
-	var contentTypes = ["text/javascript", "application/javascript", "application/x-javascript"];
+	var state, domains, contentTypes;
 
 
 	var prefsObserver = {
@@ -36,24 +50,31 @@ var pp = function() {
 				return;
 			}
 
-			if (data == "contenttypes") {
-				this.updateContentTypes();
+			switch (data) {
+				case "contenttypes": this.updateContentTypes(); break;
+				case "domains":      this.updateDomains(); break;
+				case "initstate":    this.updateState(); break;
 			}
 		},
 
-		updateContentTypes: function() {
-			var str = this.prefs.getCharPref("contenttypes");
-			if (str == null) {
-				return;
-			}
+		updateState: function() {
+			state = preparse.prefs.getCharPref("initstate");
+		},
 
+		updateDomains: function() {
+			var str = preparse.prefs.getCharPref("domains").toLowerCase();
+			domains = str.split(",");
+		},
+
+		updateContentTypes: function() {
+			var str = preparse.prefs.getCharPref("contenttypes");
 			contentTypes = str.split(",");
 		},
 
 		register: function() {
-			this.prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService).getBranch("extensions.preparse.");
-			this.prefs.QueryInterface(Components.interfaces.nsIPrefBranch2);
-			this.prefs.addObserver("", this, false);
+			preparse.prefs.addObserver("", this, false);
+			this.updateState();
+			this.updateDomains();
 			this.updateContentTypes();
 		},
 
@@ -68,6 +89,27 @@ var pp = function() {
 		}
 	};
 
+
+	function setActive(cfg, active) {
+		cfg.active = active;
+		Services.obs.notifyObservers(null, "preparse-active-changed", null);
+	}
+
+
+	function domainFind(domain) {
+		domain = domain.toLowerCase();
+		return domains.find(d => domain == d || domain.endsWith("." + d));
+	}
+
+	function domainActive(domain) {
+		return !!domainFind(domain);
+	}
+
+	function domainName(domain) {
+		return domainFind(domain) || domain.toLowerCase();
+	}
+
+
 	var httpRequestObserver = {
 		observe: function(subject, topic, data) {
 			if (topic == 'http-on-examine-response' || topic == 'http-on-examine-cached-response') {
@@ -76,14 +118,33 @@ var pp = function() {
 					subject.QueryInterface(Ci.nsIHttpChannel);
 
 					var context = this.getContext(this.getWindowFromChannel(subject));
+					if (!context) {
+						return;
+					}
 
-					if (context?.cfg.active) {
-						if (subject.isMainDocumentChannel) {
-							delete context.cfg.importmap;
+					var listen = context.cfg.active;
+					if (subject.isMainDocumentChannel) {
+						context.cfg.importmap = null;
+						context.cfg.domain = domainName(subject.URI.host).toLowerCase();
+						if (context.cfg.state == "auto") {
+							setActive(context.cfg, context.cfg.reload);
+							context.cfg.reload = false;
+							listen = true;
 						}
+					}
+					if (listen) {
 						var newListener = new preparseListener(context.cfg);
 						newListener.worker = context.worker;
 						newListener.originalListener = subject.setNewListener(newListener);
+					}
+				}
+			} else if (topic == "chrome-document-global-created" ||
+					   topic == "content-document-global-created") {
+				if (data == "null") {
+					// Not http, restore auto to off.
+					var context = this.getContext(subject);
+					if (context?.cfg.active && context.cfg.state == "auto") {
+						setActive(context.cfg, false);
 					}
 				}
 			}
@@ -133,13 +194,10 @@ var pp = function() {
 		},
 
 		register: function() {
-			var observerService = Cc["@mozilla.org/observer-service;1"]
-				.getService(Ci.nsIObserverService);
-
-			observerService.addObserver(this,
-				"http-on-examine-cached-response", false);
-			observerService.addObserver(this,
-				"http-on-examine-response", false);
+			Services.obs.addObserver(this, "http-on-examine-cached-response", false);
+			Services.obs.addObserver(this, "http-on-examine-response", false);
+			Services.obs.addObserver(this, "chrome-document-global-created", false);
+			Services.obs.addObserver(this, "content-document-global-created", false);
 		},
 
 		QueryInterface: function(aIID) {
@@ -224,10 +282,17 @@ var pp = function() {
 		var onMessage = function(event) {
 			var new_js = event.data[0];
 			if (request.isMainDocumentChannel) {
+				new_js = checkCharset(new_js);
 				new_js = addPolyfills(new_js);
 				// Special case: allow Google to work without Javascript.
 				if (request.URI.host.includes("google")) {
 					new_js = googleNoscript(new_js);
+				}
+				if (!t.cfg.active) {
+					if (domainActive(request.URI.host) || event.data[1]
+						|| new_js.includes('generator" content="Discourse')) {
+						setActive(t.cfg, true);
+					}
 				}
 			}
 			if (event.data[1]) {
@@ -290,6 +355,19 @@ var pp = function() {
 
 	prefsObserver.register();
 	httpRequestObserver.register();
+
+
+	// The meta charset value must be within the first 1024 bytes, otherwise
+	// the page will reload.  With my own reload activation that causes an
+	// infinite loop (since I reset the reload flag immediately).  Copy the tag
+	// immediately after head (assuming that to be within range).
+	function checkCharset(html) {
+		let charset = /<meta [^>]*charset=[^>]+>/.exec(html);
+		if (charset && charset.index + charset[0].length >= 1024) {
+			return html.replace(/<head[^>]*>/, "$&" + charset[0]);
+		}
+		return html;
+	}
 
 
 	function trim(strings) {
