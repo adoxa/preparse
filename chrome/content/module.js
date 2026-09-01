@@ -79,12 +79,9 @@ var pp = function() {
 		},
 
 		QueryInterface: function(aIID) {
-			if (aIID.equals(Ci.nsIObserver) ||
-				aIID.equals(Ci.nsISupports))
-			{
+			if (aIID.equals(Ci.nsIObserver) || aIID.equals(Ci.nsISupports)) {
 				return this;
 			}
-
 			throw Components.results.NS_NOINTERFACE;
 		}
 	};
@@ -112,7 +109,8 @@ var pp = function() {
 
 	var httpRequestObserver = {
 		observe: function(subject, topic, data) {
-			if (topic == 'http-on-examine-response' || topic == 'http-on-examine-cached-response') {
+			if (topic == 'http-on-examine-response' ||
+				topic == 'http-on-examine-cached-response') {
 				if (subject instanceof Ci.nsIHttpChannel) {
 					subject.QueryInterface(Ci.nsITraceableChannel);
 					subject.QueryInterface(Ci.nsIHttpChannel);
@@ -155,15 +153,13 @@ var pp = function() {
 			if (ctx) {
 				try {
 					return ctx.associatedWindow;
-				}
-				catch (e) { }
+				} catch (e) { }
 			}
 
 			return null;
 		},
 
-		getContext: function(win)
-		{
+		getContext: function(win) {
 			for (; win; win = win.parent) {
 				var entry = preparse.windows.find(w => w.browser.contentWindow == win);
 				if (entry) {
@@ -201,12 +197,9 @@ var pp = function() {
 		},
 
 		QueryInterface: function(aIID) {
-			if (aIID.equals(Ci.nsIObserver) ||
-				aIID.equals(Ci.nsISupports))
-			{
+			if (aIID.equals(Ci.nsIObserver) || aIID.equals(Ci.nsISupports)) {
 				return this;
 			}
-
 			throw Components.results.NS_NOINTERFACE;
 		}
 	};
@@ -249,9 +242,7 @@ var pp = function() {
 
 	preparseListener.prototype.onDataAvailable = function(request, context, inputStream, offset, count) {
 		if (this.intercept) {
-			var binaryInputStream = CCIN("@mozilla.org/binaryinputstream;1",
-					"nsIBinaryInputStream");
-
+			var binaryInputStream = CCIN("@mozilla.org/binaryinputstream;1", "nsIBinaryInputStream");
 			binaryInputStream.setInputStream(inputStream);
 			var data = binaryInputStream.readBytes(count);
 			this.receivedData.push(data);
@@ -345,12 +336,10 @@ var pp = function() {
 	};
 
 	preparseListener.prototype.QueryInterface = function(aIID) {
-			if (aIID.equals(Ci.nsIStreamListener) ||
-				aIID.equals(Ci.nsISupports))
-			{
-				return this;
-			}
-			throw Components.results.NS_NOINTERFACE;
+		if (aIID.equals(Ci.nsIStreamListener) || aIID.equals(Ci.nsISupports)) {
+			return this;
+		}
+		throw Components.results.NS_NOINTERFACE;
 	};
 
 	prefsObserver.register();
