@@ -11,4 +11,11 @@
 	<setting type="string" pref="extensions.preparse.domains"
 	 title="Auto Domains"
 	 desc="Separate domains with commas. Subdomains are automatically included."/>
+	<setting type="bool" pref="extensions.preparse.showstate"
+	 title="Show State in Status Bar">
+Auto: "# OFF" or "# ON"
+   On: "# ON!"
+   Off: "# OFF!"
+Click to toggle, right click to add/remove domain.
+	 </setting>
 </vbox>

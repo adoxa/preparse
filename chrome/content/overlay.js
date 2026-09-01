@@ -32,6 +32,11 @@
 		document.getElementById("preparseStatus").label = str;
 	}
 
+	function update_status_show() {
+		var collapsed = !preparse.prefs.getBoolPref("showstate");
+		document.getElementById("preparseStatus").collapsed = collapsed;
+	}
+
 	function toggle(event) {
 		var cfg = selected_config();
 		if (cfg != null) {
@@ -105,6 +110,8 @@
 		observe: function(subject, topic, data) {
 			if (topic == "preparse-active-changed") {
 				update_text();
+			} else if (topic == "preparse-show-changed") {
+				update_status_show();
 			}
 		}
 	};
@@ -115,7 +122,9 @@
 		document.getElementById("enable_preparse").addEventListener("command", enable, false);
 		document.getElementById("disable_preparse").addEventListener("command", disable, false);
 		update_text();
+		update_status_show();
 		Services.obs.addObserver(activationObserver, "preparse-active-changed", false);
+		Services.obs.addObserver(activationObserver, "preparse-show-changed", false);
 		var menu = document.getElementById("toolbar-context-menu");
 		if (menu) {
 			menu.appendChild(document.createElement("menuseparator"));
@@ -135,6 +144,7 @@
 		container.removeEventListener("TabClose", tabClose, false);
 		container.removeEventListener("TabSelect", tabSelect, false);
 		Services.obs.removeObserver(activationObserver, "preparse-active-changed", false);
+		Services.obs.removeObserver(activationObserver, "preparse-show-changed", false);
 		document.getElementById("preparse-domain-item")?.remove();
 	}
 

@@ -54,6 +54,9 @@ var pp = function() {
 				case "contenttypes": this.updateContentTypes(); break;
 				case "domains":      this.updateDomains(); break;
 				case "initstate":    this.updateState(); break;
+				case "showstate":
+					Services.obs.notifyObservers(null, "preparse-show-changed", null);
+					break;
 			}
 		},
 
