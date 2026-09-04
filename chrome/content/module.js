@@ -123,7 +123,9 @@ var pp = function() {
 						return;
 					}
 
-					var listen = context.cfg.active;
+					var listen = context.cfg.active ||
+								 (context.cfg.state != "off" &&
+								  subject.contentType.startsWith("image/avif"));
 					if (subject.isMainDocumentChannel) {
 						context.cfg.importmap = null;
 						context.cfg.domain = domainName(subject.URI.host).toLowerCase();
@@ -134,7 +136,7 @@ var pp = function() {
 						}
 					}
 					if (listen) {
-						var newListener = new preparseListener(context.cfg);
+						var newListener = new preparseListener(context);
 						newListener.worker = context.worker;
 						newListener.originalListener = subject.setNewListener(newListener);
 					}
@@ -213,15 +215,16 @@ var pp = function() {
 	}
 
 
-	function preparseListener(cfg) {
-		this.cfg = cfg;
+	function preparseListener(context) {
+		this.browser = context.browser;
+		this.cfg = context.cfg;
 		this.intercept = false;
 		this.receivedData = [];
 	}
 
 	preparseListener.prototype.isJavascript = function(subject) {
 		try {
-			this.html = false;
+			this.html = this.avif = false;
 
 			if (subject instanceof Components.interfaces.nsIHttpChannel) {
 				var contentType = subject.getResponseHeader("Content-Type");
@@ -231,6 +234,12 @@ var pp = function() {
 
 				if (contentType.startsWith("text/html")) {
 					this.html = true;
+					return true;
+				}
+
+				if (contentType.startsWith("image/avif")) {
+					this.avif = true;
+					subject.contentType = "image/bmp";
 					return true;
 				}
 
@@ -247,7 +256,13 @@ var pp = function() {
 		if (this.intercept) {
 			var binaryInputStream = CCIN("@mozilla.org/binaryinputstream;1", "nsIBinaryInputStream");
 			binaryInputStream.setInputStream(inputStream);
-			var data = binaryInputStream.readBytes(count);
+			var data;
+			if (this.avif) {
+				data = new ArrayBuffer(count);
+				binaryInputStream.readArrayBuffer(count, data);
+			} else {
+				data = binaryInputStream.readBytes(count);
+			}
 			this.receivedData.push(data);
 		} else {
 			try {
@@ -268,46 +283,71 @@ var pp = function() {
 	};
 
 	preparseListener.prototype.spawnWorker = function(request, context, statusCode) {
-		var worker = new this.worker("chrome://preparse/content/worker.js");
-		worker.postMessage([this.receivedData, this.html, this.cfg.importmap]);
+		var worker;
+		if (this.avif) {
+			worker = new this.worker("chrome://preparse/content/avif.js");
+			worker.postMessage({type: "avif", data: this.receivedData}, this.receivedData);
+		} else {
+			worker = new this.worker("chrome://preparse/content/worker.js");
+			worker.postMessage([this.receivedData, this.html, this.cfg.importmap]);
+		}
 		this.receivedData = null;
 
 		var t = this;
 		var onMessage = function(event) {
-			var new_js = event.data[0];
-			if (request.isMainDocumentChannel) {
-				new_js = checkCharset(new_js);
-				new_js = addPolyfills(new_js);
-				// Special case: allow Google to work without Javascript.
-				if (request.URI.host.includes("google")) {
-					new_js = googleNoscript(new_js);
+			var new_js = "";
+			if (t.avif) {
+				if (event.data.type == "avif") {
+					decodeMov(event.data.data, t.browser._contentWindow)
+					.then(bmp => worker.postMessage({type: "bmp", ...bmp}, [bmp.data]))
+					.catch(err => worker.postMessage({type: "err", data: err}));
+					return;
+				} else /* ("bmp" or "err") */ {
+					new_js = event.data.data;
 				}
-				if (!t.cfg.active) {
-					if (domainActive(request.URI.host) || event.data[1]
-						|| new_js.includes('generator" content="Discourse')) {
-						setActive(t.cfg, true);
+			} else {
+				new_js = event.data[0];
+				if (request.isMainDocumentChannel) {
+					new_js = checkCharset(new_js);
+					new_js = addPolyfills(new_js);
+					// Special case: allow Google to work without Javascript.
+					if (request.URI.host.includes("google")) {
+						new_js = googleNoscript(new_js);
 					}
-				}
-			}
-			if (event.data[1]) {
-				t.cfg.importmap = event.data[1];
-				for (let i in t.cfg.importmap) {
-					let imp = t.cfg.importmap[i];
-					if (!(imp[0] == "/" || /^\w+:/.test(imp))) {
-						let path = request.URI.filePath;
-						if (!path.endsWith("/")) {
-							path += "/../";
+					if (!t.cfg.active) {
+						if (domainActive(request.URI.host) || event.data[1]
+							|| new_js.includes('generator" content="Discourse')) {
+							setActive(t.cfg, true);
 						}
-						t.cfg.importmap[i] = path + imp;
 					}
 				}
-				new_js = new_js.replace("[[IMPORTMAP]]", JSON.stringify(t.cfg.importmap));
+				if (event.data[1]) {
+					t.cfg.importmap = event.data[1];
+					for (let i in t.cfg.importmap) {
+						let imp = t.cfg.importmap[i];
+						if (!(imp[0] == "/" || /^\w+:/.test(imp))) {
+							let path = request.URI.filePath;
+							if (!path.endsWith("/")) {
+								path += "/../";
+							}
+							t.cfg.importmap[i] = path + imp;
+						}
+					}
+					new_js = new_js.replace("[[IMPORTMAP]]", JSON.stringify(t.cfg.importmap));
+				}
 			}
 			var storageStream = CCIN("@mozilla.org/storagestream;1", "nsIStorageStream");
 			storageStream.init(8192, new_js.length, null);
 			if (new_js.length) {
 				var os = storageStream.getOutputStream(0);
-				os.write(new_js, new_js.length);
+				if (t.avif) {
+					var binaryStream = CCIN("@mozilla.org/binaryoutputstream;1", "nsIBinaryOutputStream");
+					binaryStream.setOutputStream(os);
+					binaryStream.writeByteArray(new_js, new_js.length);
+					binaryStream.close();
+				} else {
+					os.write(new_js, new_js.length);
+				}
 				os.close();
 			}
 
@@ -347,6 +387,45 @@ var pp = function() {
 
 	prefsObserver.register();
 	httpRequestObserver.register();
+
+
+	// Decode AVIF data using native browser's AV1 decoder.
+	function decodeMov(arr, window) {
+		const blob = new window.Blob([arr], {type: "video/mp4"});
+		const blobURL = window.URL.createObjectURL(blob);
+		return new Promise((resolve, reject) => {
+			const vid = window.document.createElement("video");
+			vid.addEventListener("loadeddata", () => {
+				if (vid.mozDecodedFrames > 0) {
+					resolve(vid);
+				} else {
+					reject("partial AV1 frame");
+				}
+			});
+			vid.addEventListener("error", () => reject("cannot decode AV1 frame"));
+			vid.muted = true;
+			vid.src = blobURL;
+			vid.play();
+		}).then(vid => {
+			const c = window.document.createElement("canvas");
+			const ctx = c.getContext("2d");
+			c.width = vid.videoWidth;
+			c.height = vid.videoHeight;
+			ctx.drawImage(vid, 0, 0, c.width, c.height);
+			const imgData = ctx.getImageData(0, 0, c.width, c.height);
+			return {
+				width: c.width,
+				height: c.height,
+				data: imgData.data.buffer,
+			}
+		}).then(res => {
+			window.URL.revokeObjectURL(blobURL);
+			return res;
+		}, err => {
+			window.URL.revokeObjectURL(blobURL);
+			throw err;
+		});
+	}
 
 
 	// The meta charset value must be within the first 1024 bytes, otherwise
