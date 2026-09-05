@@ -18,6 +18,7 @@ onmessage = function(event) {
 				return tag + script + "</script>";
 			}
 			new_js = old_js.replaceAll(/(<script.*?>)(.*?)<\/script>/gis, process);
+			new_js = moveTableForm(new_js);
 		} else {
 			// Discourse's browser-detect.
 			if (old_js.startsWith("/* eslint-disable no-var */") && old_js.includes("!check")) {
@@ -89,4 +90,50 @@ function region(script, start) {
 		++start;
 	}
 	return start;
+}
+
+
+/*
+  Move a FORM outside of a TABLE:
+
+    <table>...<form>...</form>...</table>
+
+  becomes:
+
+    <form><table>.........</table></form>
+*/
+function moveTableForm(html) {
+	let tags = Array.from(html.matchAll(/<\/?(?:table|form)\b[^>]*>\s*/gi))
+			   .map(t => (t.tag = t[0].slice(1, 3).toLowerCase(), t));
+	// Remove tables without forms.
+	for (let i = tags.length; --i > 0;) {
+		if (tags[i].tag == "/t" && tags[i-1].tag == "ta") {
+			tags.splice(i - 1, 2);
+			if (i > tags.length) {
+				--i;
+			}
+		}
+	}
+	for (let i = 0; i < tags.length - 3; ++i) {
+		if (tags[i].tag == "ta" && tags[i+1].tag == "fo" &&
+			tags[i+2].tag == "/f" && tags[i+3].tag == "/t") {
+			let table_pos = tags[i].index,
+				table_end = table_pos + tags[i][0].length,
+				form_pos = tags[i+1].index,
+				form_end = form_pos + tags[i+1][0].length,
+				form_close_pos = tags[i+2].index,
+				form_close_end = form_close_pos + tags[i+2][0].length,
+				table_close_pos = tags[i+3].index,
+				table_close_end = table_close_pos + tags[i+3][0].length;
+			html = html.slice(0, table_pos) +
+				   html.slice(form_pos, form_end) +
+				   html.slice(table_pos, form_pos) +
+				   html.slice(form_end, form_close_pos) +
+				   html.slice(form_close_end, table_close_end) +
+				   html.slice(form_close_pos, form_close_end) +
+				   html.slice(table_close_end);
+			i += 3;
+		}
+	}
+	return html;
 }
