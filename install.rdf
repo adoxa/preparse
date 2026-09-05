@@ -6,8 +6,8 @@
 		<!-- Required Items -->
 		<em:id>preparse@adoxa</em:id>
 		<em:name>Preparse</em:name>
-		<em:version>0.1</em:version>
-		<em:description>Modify Javascript to address some issues.</em:description>
+		<em:version>0.5</em:version>
+		<em:description>Modify HTML &amp; Javascript to address some issues.</em:description>
 		<em:creator>Jason "adoxa" Hood</em:creator>
 		<em:contributor>Ben Murphy (Javascript Deminifier)</em:contributor>
 		<em:contributor>dinosaur</em:contributor>
@@ -27,7 +27,7 @@
 				<!-- Pale Moon -->
 				<em:id>{8de7fcbb-c55c-4fbe-bfc5-fc555c87dbc4}</em:id>
 				<em:minVersion>29.0</em:minVersion>
-				<em:maxVersion>34.*</em:maxVersion>
+				<em:maxVersion>35.*</em:maxVersion>
 			</Description>
 		</em:targetApplication>
 
