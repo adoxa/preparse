@@ -17,7 +17,7 @@ onmessage = function(event) {
 				}
 				return tag + script + "</script>";
 			}
-			new_js = old_js.replaceAll(/(<script.*?>)(.*?)<\/script>/gs, process);
+			new_js = old_js.replaceAll(/(<script.*?>)(.*?)<\/script>/gis, process);
 		} else {
 			// Discourse's browser-detect.
 			if (old_js.startsWith("/* eslint-disable no-var */") && old_js.includes("!check")) {

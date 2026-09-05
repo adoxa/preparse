@@ -128,7 +128,7 @@ var pp = function() {
 								  subject.contentType.startsWith("image/avif"));
 					if (subject.isMainDocumentChannel) {
 						context.cfg.importmap = null;
-						context.cfg.domain = domainName(subject.URI.host).toLowerCase();
+						context.cfg.domain = domainName(subject.URI.host);
 						if (context.cfg.state == "auto") {
 							setActive(context.cfg, context.cfg.reload);
 							context.cfg.reload = false;
@@ -431,9 +431,9 @@ var pp = function() {
 	// infinite loop (since I reset the reload flag immediately).  Copy the tag
 	// immediately after head (assuming that to be within range).
 	function checkCharset(html) {
-		let charset = /<meta [^>]*charset=[^>]+>/.exec(html);
+		let charset = /<meta [^>]*charset=[^>]+>/i.exec(html);
 		if (charset && charset.index + charset[0].length >= 1024) {
-			return html.replace(/<head[^>]*>/, "$&" + charset[0]);
+			return html.replace(/<head[^>]*>/i, "$&" + charset[0]);
 		}
 		return html;
 	}
@@ -546,7 +546,7 @@ var pp = function() {
 		// Place it before the first script, to prevent moving a possible
 		// charset definition too far from the start (if there is no script
 		// then it's not necessary).
-		html = html.replace("<script", `<!--Preparse begin--><script>${polyfills}</script><!--Preparse end-->$&`);
+		html = html.replace(/<script/i, `<!--Preparse begin--><script>${polyfills}</script><!--Preparse end-->$&`);
 		return html;
 	}
 }();
