@@ -136,8 +136,8 @@ var pp = function() {
 						}
 					}
 					if (listen) {
-						var newListener = new preparseListener(context);
-						newListener.worker = context.worker;
+						var newListener = new preparseListener();
+						Object.assign(newListener, context);
 						newListener.originalListener = subject.setNewListener(newListener);
 					}
 				}
@@ -215,9 +215,7 @@ var pp = function() {
 	}
 
 
-	function preparseListener(context) {
-		this.browser = context.browser;
-		this.cfg = context.cfg;
+	function preparseListener() {
 		this.intercept = false;
 		this.receivedData = [];
 	}
