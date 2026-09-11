@@ -3,6 +3,11 @@
 
 	var domain_match;
 
+	// CSSStyleSheet is not available to the module.
+	if (!CSSStyleSheet.prototype.replaceSync) {
+		preparse.replaceSync = true;
+	}
+
 	function selected_config() {
 		var browser = gBrowser.selectedBrowser;
 		if (browser != null) {

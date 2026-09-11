@@ -543,6 +543,47 @@ var pp = function() {
 				};
 			`;
 		}
+		if (preparse.replaceSync) {
+			polyfills += trim`
+				CSSStyleSheet.prototype.replaceSync = function(css) {
+					while (this.cssRules.length) {
+						this.deleteRule(0);
+					}
+					try {
+						this.insertRule(css, this.cssRules.length);
+						return;
+					} catch (e) {
+						// assume multiple rules
+					}
+					css = css.replace('@charset "UTF-8";', '');
+					let start = 0;
+					while (start < css.length) {
+						let end = rule(start);
+						try {
+							this.insertRule(css.slice(start, end), this.cssRules.length);
+						} catch (e) {
+						  // ignore it
+						}
+						start = end;
+					}
+					function rule(start) {
+						// Braces tend to be balanced, even in quotes & comments, so keep it simple.
+						let braces = 0;
+						while (css[start] !== undefined) {
+							if (css[start] == '{') {
+								++braces;
+							} else if (css[start] == '}') {
+								if (--braces == 0) {
+								  return start + 1;
+								}
+							}
+							++start;
+						}
+						return start;
+					}
+				}
+			`;
+		}
 		// Place it before the first script, to prevent moving a possible
 		// charset definition too far from the start (if there is no script
 		// then it's not necessary).
