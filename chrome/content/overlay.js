@@ -1,7 +1,7 @@
 (function() {
 	Components.utils.import("resource://preparse_js/module.js");
 
-	var domain_match;
+	var domain_match, domain_pref;
 
 	// CSSStyleSheet is not available to the module.
 	if (!CSSStyleSheet.prototype.replaceSync) {
@@ -34,7 +34,7 @@
 
 	function update_status_text(enabled, state) {
 		var str = `# ${enabled ? "ON" : "OFF"}`;
-		if (!(state == "auto" || (state == "off" && enabled))) {
+		if (state != "auto" && (state == "on") == enabled) {
 			str += "!";
 		}
 		document.getElementById("preparseStatus").label = str;
@@ -54,10 +54,25 @@
 				var menu = document.getElementById("preparse-domain-item");
 				if (menu && cfg.domain) {
 					menu.setAttribute("disabled", false);
+					var label;
 					var domains = preparse.prefs.getCharPref("domains").toLowerCase();
-					domain_match = new RegExp(`(?:^|,)${cfg.domain.replaceAll(".", "\\.")}(?=,|$)`).exec(domains);
-					var op = domain_match ? "Remove" : "Add";
-					menu.setAttribute("label", `${op} '${cfg.domain}'`);
+					var re = new RegExp(`(?:^|,)${cfg.domain.replaceAll(".", "\\.")}(?=,|$)`);
+					domain_match = re.exec(domains);
+					if (domain_match) {
+						domain_pref = "domains";
+						label = `Remove '${cfg.domain}' from always on`;
+					} else {
+						domains = preparse.prefs.getCharPref("domains_off").toLowerCase();
+						domain_match = re.exec(domains);
+						if (domain_match) {
+							domain_pref = "domains_off";
+							label = `Remove '${cfg.domain}' from always off`;
+						} else {
+							label = `Add '${cfg.domain}' to always ${cfg.active ? "on" : "off"}`;
+							domain_pref = cfg.active ? "domains" : "domains_off";
+						}
+					}
+					menu.setAttribute("label", label);
 				}
 				return;
 			}
@@ -82,7 +97,7 @@
 
 	function domainCommand() {
 		var cfg = selected_config();
-		var domains = preparse.prefs.getCharPref("domains").toLowerCase();
+		var domains = preparse.prefs.getCharPref(domain_pref).toLowerCase();
 		if (domain_match) {
 			var len = domain_match[0].length;
 			if (domain_match.index == 0) {
@@ -96,7 +111,7 @@
 			}
 			domains += cfg.domain;
 		}
-		preparse.prefs.setCharPref("domains", domains);
+		preparse.prefs.setCharPref(domain_pref, domains);
 	}
 
 	function set_active(active) {

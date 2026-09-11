@@ -11,6 +11,8 @@
 	<setting type="string" pref="extensions.preparse.domains"
 	 title="Always On Domains"
 	 desc="Separate domains with commas. Subdomains are automatically included."/>
+	<setting type="string" pref="extensions.preparse.domains_off"
+	 title="Always Off Domains"/>
 	<setting type="bool" pref="extensions.preparse.copystate"
 	 title="Copy Current State to New Tab"/>
 	<setting type="bool" pref="extensions.preparse.showstate"

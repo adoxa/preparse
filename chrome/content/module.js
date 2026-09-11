@@ -41,7 +41,7 @@ var pp = function() {
 	const Cc = Components.classes;
 	const Ci = Components.interfaces;
 
-	var state, domains, contentTypes;
+	var state, domains_on, domains_off, contentTypes;
 
 
 	var prefsObserver = {
@@ -52,7 +52,8 @@ var pp = function() {
 
 			switch (data) {
 				case "contenttypes": this.updateContentTypes(); break;
-				case "domains":      this.updateDomains(); break;
+				case "domains":
+				case "domains_off":  this.updateDomains(data); break;
 				case "initstate":    this.updateState(); break;
 				case "showstate":
 					Services.obs.notifyObservers(null, "preparse-show-changed", null);
@@ -64,9 +65,14 @@ var pp = function() {
 			state = preparse.prefs.getCharPref("initstate");
 		},
 
-		updateDomains: function() {
-			var str = preparse.prefs.getCharPref("domains").toLowerCase();
-			domains = str.split(",");
+		updateDomains: function(pref) {
+			var str = preparse.prefs.getCharPref(pref).toLowerCase();
+			str = str.split(",");
+			if (pref == "domains") {
+				domains_on = str;
+			} else {
+				domains_off = str;
+			}
 		},
 
 		updateContentTypes: function() {
@@ -77,7 +83,8 @@ var pp = function() {
 		register: function() {
 			preparse.prefs.addObserver("", this, false);
 			this.updateState();
-			this.updateDomains();
+			this.updateDomains("domains");
+			this.updateDomains("domains_off");
 			this.updateContentTypes();
 		},
 
@@ -91,22 +98,24 @@ var pp = function() {
 
 
 	function setActive(cfg, active) {
-		cfg.active = active;
-		Services.obs.notifyObservers(null, "preparse-active-changed", null);
+		if (cfg.active != active) {
+			cfg.active = active;
+			Services.obs.notifyObservers(null, "preparse-active-changed", null);
+		}
 	}
 
 
-	function domainFind(domain) {
+	function domainFind(domains, domain) {
 		domain = domain.toLowerCase();
 		return domains.find(d => domain == d || domain.endsWith("." + d));
 	}
 
-	function domainActive(domain) {
-		return !!domainFind(domain);
+	function domainActive(domains, domain) {
+		return !!domainFind(domains, domain);
 	}
 
-	function domainName(domain) {
-		return domainFind(domain) || domain.toLowerCase();
+	function domainName(domains, domain) {
+		return domainFind(domains, domain) || domain.toLowerCase();
 	}
 
 
@@ -128,14 +137,22 @@ var pp = function() {
 								  subject.contentType.startsWith("image/avif"));
 					if (subject.isMainDocumentChannel) {
 						context.cfg.importmap = null;
-						context.cfg.domain = domainName(subject.URI.host);
-						if (context.cfg.state != "on" && domainActive(subject.URI.host)) {
+						context.cfg.domain = subject.URI.host.toLowerCase();
+						if (context.cfg.state != "on" && domainActive(domains_on, subject.URI.host)) {
+							context.cfg.domain = domainName(domains_on, subject.URI.host);
 							setActive(context.cfg, true);
 							listen = true;
+						} else if (context.cfg.state != "off" && domainActive(domains_off, subject.URI.host)) {
+							context.cfg.domain = domainName(domains_off, subject.URI.host);
+							setActive(context.cfg, false);
+							listen = false;
 						} else if (context.cfg.state == "auto") {
 							setActive(context.cfg, context.cfg.reload);
 							context.cfg.reload = false;
 							listen = true;
+						} else {
+							listen = context.cfg.state == "on";
+							setActive(context.cfg, listen);
 						}
 					}
 					if (listen) {
@@ -147,10 +164,10 @@ var pp = function() {
 			} else if (topic == "chrome-document-global-created" ||
 					   topic == "content-document-global-created") {
 				if (data == "null") {
-					// Not http, restore off if necessary.
+					// Not http, restore initial state.
 					var context = this.getContext(subject);
-					if (context?.cfg.active && context.cfg.state != "on") {
-						setActive(context.cfg, false);
+					if (context) {
+						setActive(context.cfg, context.cfg.state == "on");
 					}
 				}
 			}
