@@ -129,7 +129,10 @@ var pp = function() {
 					if (subject.isMainDocumentChannel) {
 						context.cfg.importmap = null;
 						context.cfg.domain = domainName(subject.URI.host);
-						if (context.cfg.state == "auto") {
+						if (context.cfg.state != "on" && domainActive(subject.URI.host)) {
+							setActive(context.cfg, true);
+							listen = true;
+						} else if (context.cfg.state == "auto") {
 							setActive(context.cfg, context.cfg.reload);
 							context.cfg.reload = false;
 							listen = true;
@@ -144,9 +147,9 @@ var pp = function() {
 			} else if (topic == "chrome-document-global-created" ||
 					   topic == "content-document-global-created") {
 				if (data == "null") {
-					// Not http, restore auto to off.
+					// Not http, restore off if necessary.
 					var context = this.getContext(subject);
-					if (context?.cfg.active && context.cfg.state == "auto") {
+					if (context?.cfg.active && context.cfg.state != "on") {
 						setActive(context.cfg, false);
 					}
 				}
@@ -313,7 +316,7 @@ var pp = function() {
 						new_js = googleNoscript(new_js);
 					}
 					if (!t.cfg.active) {
-						if (domainActive(request.URI.host) || event.data[1]
+						if (event.data[1]	// has an import map
 							|| new_js.includes('generator" content="Discourse')) {
 							setActive(t.cfg, true);
 						}

@@ -9,7 +9,7 @@
 		</radiogroup>
 	</setting>
 	<setting type="string" pref="extensions.preparse.domains"
-	 title="Auto Domains"
+	 title="Always On Domains"
 	 desc="Separate domains with commas. Subdomains are automatically included."/>
 	<setting type="bool" pref="extensions.preparse.copystate"
 	 title="Copy Current State to New Tab"/>

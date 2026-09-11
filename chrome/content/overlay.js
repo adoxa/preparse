@@ -24,7 +24,7 @@
 
 	function get_enabled() {
 		var cfg = selected_config();
-		return cfg == null ? [false, false] : [cfg.active, cfg.state != "auto"];
+		return cfg == null ? [false, false] : [cfg.active, cfg.state];
 	}
 
 	function update_menu(enabled) {
@@ -32,10 +32,13 @@
 		document.getElementById("disable_preparse").setAttribute("checked", enabled ? "false" : "true");
 	}
 
-	function update_status_text(enabled, forced) {
-		var str = `# ${enabled ? "ON" : "OFF"}${forced ? "!" : ""}`;
+	function update_status_text(enabled, state) {
+		var str = `# ${enabled ? "ON" : "OFF"}`;
+		if (!(state == "auto" || (state == "off" && enabled))) {
+			str += "!";
+		}
 		document.getElementById("preparseStatus").label = str;
-		str = `Preparse ${forced ? enabled ? "On" : "Off" : "Auto"}`;
+		str = `Preparse ${state == "auto" ? "Auto" : state == "on" ? "On" : "Off"}`;
 		document.getElementById("preparseStatus").setAttribute("tooltiptext", str);
 	}
 
