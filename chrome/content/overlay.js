@@ -35,6 +35,8 @@
 	function update_status_text(enabled, forced) {
 		var str = `# ${enabled ? "ON" : "OFF"}${forced ? "!" : ""}`;
 		document.getElementById("preparseStatus").label = str;
+		str = `Preparse ${forced ? enabled ? "On" : "Off" : "Auto"}`;
+		document.getElementById("preparseStatus").setAttribute("tooltiptext", str);
 	}
 
 	function update_status_show() {

@@ -2,7 +2,7 @@
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 	<script type="application/x-javascript" src="chrome://preparse/content/overlay.js"/>
 	<statusbar id="status-bar">
-		<statusbarpanel id="preparseStatus" label="#"/>
+		<statusbarpanel id="preparseStatus" label="#" tooltiptext="Preparse"/>
 	</statusbar>
 	<menupopup id="menu_ToolsPopup">
 		<menu id="appmenu_preparse" label="Preparse" insertafter="devToolsSeparator">
