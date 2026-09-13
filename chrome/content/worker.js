@@ -101,13 +101,27 @@ function region(script, start) {
   becomes:
 
     <form><table>.........</table></form>
+
+  and inside a TD:
+
+	<form><td>...</td></form>
+
+  becomes:
+
+	<td><form>...</form></td>
 */
 function moveTableForm(html) {
-	let tags = Array.from(html.matchAll(/<\/?(?:table|form)\b[^>]*>\s*/gi))
-			   .map(t => (t.tag = t[0].slice(1, 3).toLowerCase(), t));
-	// Remove tables without forms.
+	html = moveTags(html, "table", "form", "table|form");
+	return moveTags(html, "form", "td", "form|tr|td");
+}
+
+
+function moveTags(html, outer_tag, inner_tag, search_tags) {
+	let re = new RegExp(`<(/?(?:${search_tags}))\\b[^>]*>\\s*`, "gi");
+	let tags = Array.from(html.matchAll(re)).map(t => (t.tag = t[1].toLowerCase(), t));
+	// Remove outer tags that don't have inner.
 	for (let i = tags.length; --i > 0;) {
-		if (tags[i].tag == "/t" && tags[i-1].tag == "ta") {
+		if (tags[i].tag == "/" + outer_tag && tags[i-1].tag == outer_tag) {
 			tags.splice(i - 1, 2);
 			if (i > tags.length) {
 				--i;
@@ -115,23 +129,23 @@ function moveTableForm(html) {
 		}
 	}
 	for (let i = 0; i < tags.length - 3; ++i) {
-		if (tags[i].tag == "ta" && tags[i+1].tag == "fo" &&
-			tags[i+2].tag == "/f" && tags[i+3].tag == "/t") {
-			let table_pos = tags[i].index,
-				table_end = table_pos + tags[i][0].length,
-				form_pos = tags[i+1].index,
-				form_end = form_pos + tags[i+1][0].length,
-				form_close_pos = tags[i+2].index,
-				form_close_end = form_close_pos + tags[i+2][0].length,
-				table_close_pos = tags[i+3].index,
-				table_close_end = table_close_pos + tags[i+3][0].length;
-			html = html.slice(0, table_pos) +
-				   html.slice(form_pos, form_end) +
-				   html.slice(table_pos, form_pos) +
-				   html.slice(form_end, form_close_pos) +
-				   html.slice(form_close_end, table_close_end) +
-				   html.slice(form_close_pos, form_close_end) +
-				   html.slice(table_close_end);
+		if (tags[i].tag == outer_tag && tags[i+1].tag == inner_tag &&
+			tags[i+2].tag == "/" + inner_tag && tags[i+3].tag == "/" + outer_tag) {
+			let outer_pos = tags[i].index,
+				outer_end = outer_pos + tags[i][0].length,
+				inner_pos = tags[i+1].index,
+				inner_end = inner_pos + tags[i+1][0].length,
+				inner_close_pos = tags[i+2].index,
+				inner_close_end = inner_close_pos + tags[i+2][0].length,
+				outer_close_pos = tags[i+3].index,
+				outer_close_end = outer_close_pos + tags[i+3][0].length;
+			html = html.slice(0, outer_pos) +
+				   html.slice(inner_pos, inner_end) +
+				   html.slice(outer_pos, inner_pos) +
+				   html.slice(inner_end, inner_close_pos) +
+				   html.slice(inner_close_end, outer_close_end) +
+				   html.slice(inner_close_pos, inner_close_end) +
+				   html.slice(outer_close_end);
 			i += 3;
 		}
 	}
