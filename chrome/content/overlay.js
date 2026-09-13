@@ -47,12 +47,25 @@
 		document.getElementById("preparseStatus").collapsed = collapsed;
 	}
 
+	function popupShowing(event) {
+		var item = document.getElementById("preparse-domain-item");
+		if (item) {
+			var hidden = item.getAttribute("pp_show") != "true";
+			item.hidden = item.previousSibling.hidden = hidden;
+			item.setAttribute("pp_show", false);
+		}
+	}
+
 	function toggle(event) {
 		var cfg = selected_config();
 		if (cfg != null) {
 			if (event.button == 2) {
 				var menu = document.getElementById("preparse-domain-item");
-				if (menu && cfg.domain) {
+				if (!menu) {
+					return;
+				}
+				menu.setAttribute("pp_show", true);
+				if (cfg.domain) {
 					menu.setAttribute("disabled", false);
 					var label;
 					var domains = preparse.prefs.getCharPref("domains").toLowerCase();
@@ -159,6 +172,7 @@
 			domainItem.setAttribute("disabled", true);
 			domainItem.addEventListener("command", domainCommand, false);
 			menu.appendChild(domainItem);
+			menu.addEventListener("popupshowing", popupShowing, false);
 		}
 	}
 
@@ -170,7 +184,11 @@
 		container.removeEventListener("TabSelect", tabSelect, false);
 		Services.obs.removeObserver(activationObserver, "preparse-active-changed", false);
 		Services.obs.removeObserver(activationObserver, "preparse-show-changed", false);
-		document.getElementById("preparse-domain-item")?.remove();
+		var menu = document.getElementById("toolbar-context-menu");
+		if (menu) {
+			document.getElementById("preparse-domain-item").remove();
+			menu.removeEventListener("popupshowing", popupShowing, false);
+		}
 	}
 
 	function tabOpen(event) {
