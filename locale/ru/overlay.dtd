@@ -1,0 +1,17 @@
+<!ENTITY status.label "#">
+<!ENTITY menu.label "Preparse">
+<!ENTITY menu.Enable.label "Включить для данной вкладки">
+<!ENTITY menu.Disable.label "Отключить для данной вкладки">
+<!ENTITY options.InitialState.title "Начальное состояние">
+<!ENTITY options.state.Auto.label "Авто">
+<!ENTITY options.state.On.label "Вкл.">
+<!ENTITY options.state.Off.label "Выкл.">
+<!ENTITY options.domainsOn.title "Домены, для которых всегда &quot;Вкл.&quot;">
+<!ENTITY options.domainsOff.title "Домены, для которых всегда &quot;Выкл.&quot;">
+<!ENTITY options.domains.desc "Домены разделяются запятыми. Поддомены указывать не требуется.">
+<!ENTITY options.CopyToNewTab.title "Копировать текущее состояние в новую вкладку">
+<!ENTITY options.ShowState.title "Показывать в строке состояния">
+<!ENTITY options.ShowState.desc "Авто  : &quot;# OFF&quot; или &quot;# ON&quot;
+ Вкл.  : &quot;# ON!&quot;
+Выкл.: &quot;# OFF!&quot;
+Переключение щелчком первой кнопки мыши. Добавление/удаление домена щелчком второй кнопки.">

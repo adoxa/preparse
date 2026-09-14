@@ -12,6 +12,15 @@
 		<em:contributor>Ben Murphy (Javascript Deminifier)</em:contributor>
 		<em:contributor>dinosaur</em:contributor>
 		<em:contributor>Kagami Hiiragi (avif.js)</em:contributor>
+		<em:contributor>yup (localisation, Russian translation)</em:contributor>
+
+		<em:localized>
+			<Description>
+				<em:locale>ru</em:locale>
+				<em:name>Preparse</em:name>
+				<em:description>На лету изменяет файлы HTML и Javascript для улучшения совместимости с отдельными сайтами.</em:description>
+			</Description>
+		</em:localized>
 
 		<em:targetApplication>
 			<Description>

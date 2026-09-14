@@ -1,6 +1,10 @@
 (function() {
 	Components.utils.import("resource://preparse_js/module.js");
 
+	const stringBundle = Services.strings.createBundle("chrome://preparse/locale/menu.properties");
+	const getString = stringBundle.GetStringFromName;
+	const formatString = stringBundle.formatStringFromName;
+
 	var domain_match, domain_pref;
 
 	// CSSStyleSheet is not available to the module.
@@ -33,12 +37,12 @@
 	}
 
 	function update_status_text(enabled, state) {
-		var str = `# ${enabled ? "ON" : "OFF"}`;
+		var str = getString(enabled ? "state.ON" : "state.OFF");
 		if (state != "auto" && (state == "on") == enabled) {
-			str += "!";
+			str += getString("state.explicit");
 		}
 		document.getElementById("preparseStatus").label = str;
-		str = `Preparse ${state == "auto" ? "Auto" : state == "on" ? "On" : "Off"}`;
+		str = getString("context." + state);
 		document.getElementById("preparseStatus").setAttribute("tooltiptext", str);
 	}
 
@@ -73,18 +77,19 @@
 					domain_match = re.exec(domains);
 					if (domain_match) {
 						domain_pref = "domains";
-						label = `Remove '${cfg.domain}' from always on`;
+						label = "RemoveDomainFromOn";
 					} else {
 						domains = preparse.prefs.getCharPref("domains_off").toLowerCase();
 						domain_match = re.exec(domains);
 						if (domain_match) {
 							domain_pref = "domains_off";
-							label = `Remove '${cfg.domain}' from always off`;
+							label = "RemoveDomainFromOff";
 						} else {
-							label = `Add '${cfg.domain}' to always ${cfg.active ? "on" : "off"}`;
+							label = cfg.active ? "AddDomainToOn" : "AddDomainToOff";
 							domain_pref = cfg.active ? "domains" : "domains_off";
 						}
 					}
+					label = formatString(label, [cfg.domain], 1);
 					menu.setAttribute("label", label);
 				}
 				return;
@@ -168,7 +173,7 @@
 			menu.appendChild(document.createElement("menuseparator"));
 			var domainItem = document.createElement("menuitem");
 			domainItem.setAttribute("id", "preparse-domain-item");
-			domainItem.setAttribute("label", "Add/remove domain");
+			domainItem.setAttribute("label", getString("AddRemoveDomain"));
 			domainItem.setAttribute("disabled", true);
 			domainItem.addEventListener("command", domainCommand, false);
 			menu.appendChild(domainItem);

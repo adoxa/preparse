@@ -1,3 +1,6 @@
 content preparse chrome/content/
 overlay chrome://browser/content/browser.xul chrome://preparse/content/overlay.xul
 resource preparse_js chrome/content/
+
+locale preparse en-US locale/en-US/
+locale preparse ru	  locale/ru/

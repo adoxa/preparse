@@ -1,0 +1,17 @@
+<!ENTITY status.label "#">
+<!ENTITY menu.label "Preparse">
+<!ENTITY menu.Enable.label "Enable for Current Tab">
+<!ENTITY menu.Disable.label "Disable for Current Tab">
+<!ENTITY options.InitialState.title "Initial State">
+<!ENTITY options.state.Auto.label "Auto">
+<!ENTITY options.state.On.label "On">
+<!ENTITY options.state.Off.label "Off">
+<!ENTITY options.domainsOn.title "Always On Domains">
+<!ENTITY options.domainsOff.title "Always Off Domains">
+<!ENTITY options.domains.desc "Separate domains with commas. Subdomains are automatically included.">
+<!ENTITY options.CopyToNewTab.title "Copy Current State to New Tab">
+<!ENTITY options.ShowState.title "Show State in Status Bar">
+<!ENTITY options.ShowState.desc "Auto: &quot;# OFF&quot; or &quot;# ON&quot;
+   On: &quot;# ON!&quot;
+  &#x2009;Off: &quot;# OFF!&quot;
+Click to toggle, right click to add/remove domain.">

@@ -1,25 +1,23 @@
 <?xml version="1.0"?>
+<!DOCTYPE overlay SYSTEM "chrome://preparse/locale/overlay.dtd">
 <vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 	<setting type="radio" pref="extensions.preparse.initstate"
-	 title="Initial State">
+	 title="&options.InitialState.title;">
 		<radiogroup>
-			<radio value="auto" label="Auto"/>
-			<radio value="on" label="On"/>
-			<radio value="off" label="Off"/>
+			<radio value="auto" label="&options.state.Auto.label;"/>
+			<radio value="on" label="&options.state.On.label;"/>
+			<radio value="off" label="&options.state.Off.label;"/>
 		</radiogroup>
 	</setting>
 	<setting type="string" pref="extensions.preparse.domains"
-	 title="Always On Domains"
-	 desc="Separate domains with commas. Subdomains are automatically included."/>
+	 title="&options.domainsOn.title;"
+	 desc="&options.domains.desc;"/>
 	<setting type="string" pref="extensions.preparse.domains_off"
-	 title="Always Off Domains"/>
+	 title="&options.domainsOff.title;"/>
 	<setting type="bool" pref="extensions.preparse.copystate"
-	 title="Copy Current State to New Tab"/>
+	 title="&options.CopyToNewTab.title;"/>
 	<setting type="bool" pref="extensions.preparse.showstate"
-	 title="Show State in Status Bar">
-Auto: "# OFF" or "# ON"
-   On: "# ON!"
-   Off: "# OFF!"
-Click to toggle, right click to add/remove domain.
+	 title="&options.ShowState.title;">
+&options.ShowState.desc;
 	 </setting>
 </vbox>

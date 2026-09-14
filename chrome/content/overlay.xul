@@ -1,14 +1,15 @@
+<!DOCTYPE overlay SYSTEM "chrome://preparse/locale/overlay.dtd">
 <overlay id="preparse"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 	<script type="application/x-javascript" src="chrome://preparse/content/overlay.js"/>
 	<statusbar id="status-bar">
-		<statusbarpanel id="preparseStatus" label="#" tooltiptext="Preparse"/>
+		<statusbarpanel id="preparseStatus" label="&status.label;" tooltiptext="&menu.label;"/>
 	</statusbar>
 	<menupopup id="menu_ToolsPopup">
-		<menu id="appmenu_preparse" label="Preparse" insertafter="devToolsSeparator">
+		<menu id="appmenu_preparse" label="&menu.label;" insertafter="devToolsSeparator">
 			<menupopup>
-				<menuitem type="checkbox" checked="false" id="enable_preparse" label="Enable for Current Tab"/>
-				<menuitem type="checkbox" checked="true" id="disable_preparse" label="Disable for Current Tab"/>
+				<menuitem type="checkbox" checked="false" id="enable_preparse" label="&menu.Enable.label;"/>
+				<menuitem type="checkbox" checked="true" id="disable_preparse" label="&menu.Disable.label;"/>
 			</menupopup>
 		</menu>
 	</menupopup>
