@@ -38,12 +38,12 @@ onmessage = function(event) {
 
 function rename(script, importmap) {
 	if (importmap) {
-		function map_import(match, quote, name) {
+		function map_import(match, kw, quote, name) {
 			if (name in importmap)
-				return `from${quote}${importmap[name]}${quote}`;
+				return `${kw}${quote}${importmap[name]}${quote}`;
 			return match;
 		}
-		script = script.replaceAll(/from\s*(['"])(.*?)\1/g, map_import);
+		script = script.replaceAll(/(from|import)\s*(['"])(.*?)\2/g, map_import);
 	}
 
 	// Prefix private elements from extended classes with the new class name.
