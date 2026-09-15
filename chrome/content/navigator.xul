@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE overlay SYSTEM "chrome://preparse/locale/overlay.dtd">
+
+<overlay id="preparse" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+	<script src="chrome://preparse/content/overlay.js"/>
+
+	<statusbar id="status-bar">
+		<statusbarpanel id="preparseStatus" label="&status.label;" tooltiptext="&menu.label;"
+						context="preparse-contextmenu"/>
+	</statusbar>
+
+	<popupset id="mainPopupSet">
+		<menupopup id="preparse-contextmenu">
+			<menuitem id="preparse-domain-item" disabled="true"/>
+		</menupopup>
+	</popupset>
+
+	<menupopup id="taskPopup">
+		<menu id="appmenu_preparse" label="&menu.label;" insertafter="devToolsSeparator">
+			<menupopup>
+				<menuitem label="&menu.Enable.label;" id="enable_preparse" type="checkbox" checked="false"/>
+				<menuitem label="&menu.Disable.label;" id="disable_preparse" type="checkbox" checked="true"/>
+			</menupopup>
+		</menu>
+	</menupopup>
+
+</overlay>

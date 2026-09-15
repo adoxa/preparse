@@ -168,16 +168,22 @@
 		update_status_show();
 		Services.obs.addObserver(activationObserver, "preparse-active-changed", false);
 		Services.obs.addObserver(activationObserver, "preparse-show-changed", false);
-		var menu = document.getElementById("toolbar-context-menu");
-		if (menu) {
-			menu.appendChild(document.createElement("menuseparator"));
-			var domainItem = document.createElement("menuitem");
-			domainItem.setAttribute("id", "preparse-domain-item");
+		// Iceape-UXP creates its own menu.
+		var domainItem = document.getElementById("preparse-domain-item");
+		if (!domainItem) {
+			var menu = document.getElementById("toolbar-context-menu");
+			if (menu) {
+				menu.appendChild(document.createElement("menuseparator"));
+				domainItem = document.createElement("menuitem");
+				domainItem.setAttribute("id", "preparse-domain-item");
+				domainItem.setAttribute("disabled", true);
+				menu.appendChild(domainItem);
+				menu.addEventListener("popupshowing", popupShowing, false);
+			}
+		}
+		if (domainItem) {
 			domainItem.setAttribute("label", getString("AddRemoveDomain"));
-			domainItem.setAttribute("disabled", true);
 			domainItem.addEventListener("command", domainCommand, false);
-			menu.appendChild(domainItem);
-			menu.addEventListener("popupshowing", popupShowing, false);
 		}
 	}
 
