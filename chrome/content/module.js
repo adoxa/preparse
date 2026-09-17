@@ -601,7 +601,15 @@ var pp = function() {
 						}
 						return start;
 					}
-				}
+				};
+				// If replaceSync exists, adoptedStyleSheets is also expected.
+				document.adoptedStyleSheets = [];
+				Element.prototype.attachShadow_org = Element.prototype.attachShadow;
+				Element.prototype.attachShadow = function(options) {
+					const shadow = this.attachShadow_org(options);
+					shadow.adoptedStyleSheets = [];
+					return shadow;
+				};
 			`;
 		}
 		// Place it before the first script, to prevent moving a possible
