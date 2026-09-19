@@ -615,7 +615,7 @@ var pp = function() {
 		// Place it before the first script, to prevent moving a possible
 		// charset definition too far from the start (if there is no script
 		// then it's not necessary).
-		html = html.replace(/<script/i, `<!--Preparse begin--><script>${polyfills}</script><!--Preparse end-->$&`);
+		html = html.replace(/(\s*)<script/i, `$1<!--Preparse begin-->$1<script>${polyfills}</script>$1<!--Preparse end-->$&`);
 		return html;
 	}
 }();

@@ -5,9 +5,8 @@ onmessage = function(event) {
 	var imports;
 	try {
 		if (event.data[1]) { // html
-			function process(match, tag, script) {
+			function process(match, tag, script, tag_close) {
 				tag = tag.replaceAll("integrity", "no-integrity");
-				script = script.trim();
 				if (tag.includes("importmap")) {
 					imports = importmap = JSON.parse(script).imports;
 					script = "window.importmap = [[IMPORTMAP]]";
@@ -15,9 +14,9 @@ onmessage = function(event) {
 				} else if (script.length) {
 					script = rename(script, importmap);
 				}
-				return tag + script + "</script>";
+				return tag + script + tag_close;
 			}
-			new_js = old_js.replaceAll(/(<script.*?>)(.*?)<\/script>/gis, process);
+			new_js = old_js.replaceAll(/(<script.*?>)(.*?)(<\/script>)/gis, process);
 			new_js = moveTableForm(new_js);
 		} else {
 			// Discourse's browser-detect.
