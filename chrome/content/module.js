@@ -489,11 +489,11 @@ var pp = function() {
 	function addPolyfills(html) {
 		let polyfills = "";
 		if (!IDBTransaction.prototype.commit) {
-			polyfills += `IDBTransaction.prototype.commit = () => {};`;
+			polyfills += `IDBTransaction.prototype.commit ??= () => {};`;
 		}
 		if (!Intl.RelativeTimeFormat.prototype.formatToParts) {
 			polyfills += trim`
-				Intl.RelativeTimeFormat.prototype.formatToParts = function(value, unit) {
+				Intl.RelativeTimeFormat.prototype.formatToParts ??= function(value, unit) {
 					let fraction = value % 1;
 					value = this.format(value, unit);
 					if (unit.endsWith("s")) {
@@ -528,44 +528,46 @@ var pp = function() {
 			});
 		} catch (e) {
 			polyfills += trim`
-				Intl.NumberFormat = class extends Intl.NumberFormat {
-					constructor(locales, options) {
-						let narrow;
-						if (options?.currencyDisplay == "narrowSymbol") {
-							options.currencyDisplay = "symbol";
-							narrow = true;
+				if (!Intl.NumberFormat.makeNarrow) {
+					Intl.NumberFormat = class extends Intl.NumberFormat {
+						constructor(locales, options) {
+							let narrow;
+							if (options?.currencyDisplay == "narrowSymbol") {
+								options.currencyDisplay = "symbol";
+								narrow = true;
+							}
+							super(locales, options);
+							this.narrow = narrow;
 						}
-						super(locales, options);
-						this.narrow = narrow;
-					}
-					static makeNarrow(fmt) {
-						// There's "Cg." for Caribbean guilder.
-						let narrow = fmt.replace(/^[\sA-Za-z.]*/, "");
-						if (/\D/.test(narrow[0])) {
-							return narrow;
+						static makeNarrow(fmt) {
+							// There's "Cg." for Caribbean guilder.
+							let narrow = fmt.replace(/^[\sA-Za-z.]*/, "");
+							if (/\D/.test(narrow[0])) {
+								return narrow;
+							}
+							return fmt;
 						}
-						return fmt;
-					}
-					format(number) {
-						let result= super.format(number);
-						if (this.narrow) {
-							return Intl.NumberFormat.makeNarrow(result);
+						format(number) {
+							let result= super.format(number);
+							if (this.narrow) {
+								return Intl.NumberFormat.makeNarrow(result);
+							}
+							return result;
 						}
-						return result;
-					}
-					formatToParts(number) {
-						let parts = super.formatToParts(number);
-						if (this.narrow) {
-							parts[0].value = Intl.NumberFormat.makeNarrow(parts[0].value);
+						formatToParts(number) {
+							let parts = super.formatToParts(number);
+							if (this.narrow) {
+								parts[0].value = Intl.NumberFormat.makeNarrow(parts[0].value);
+							}
+							return parts;
 						}
-						return parts;
-					}
-				};
+					};
+				}
 			`;
 		}
 		if (preparse.replaceSync) {
 			polyfills += trim`
-				CSSStyleSheet.prototype.replaceSync = function(css) {
+				CSSStyleSheet.prototype.replaceSync ??= function(css) {
 					while (this.cssRules.length) {
 						this.deleteRule(0);
 					}
@@ -603,19 +605,22 @@ var pp = function() {
 					}
 				};
 				// If replaceSync exists, adoptedStyleSheets is also expected.
-				document.adoptedStyleSheets = [];
-				Element.prototype.attachShadow_org = Element.prototype.attachShadow;
-				Element.prototype.attachShadow = function(options) {
-					const shadow = this.attachShadow_org(options);
-					shadow.adoptedStyleSheets = [];
-					return shadow;
-				};
+				if (!Element.prototype._pp_attachShadow) {
+					Element.prototype._pp_attachShadow = Element.prototype.attachShadow;
+					Element.prototype.attachShadow = function(options) {
+						const shadow = this._pp_attachShadow(options);
+						shadow.adoptedStyleSheets = [];
+						return shadow;
+					};
+					document.adoptedStyleSheets = [];
+				}
 			`;
 		}
-		// Place it before the first script, to prevent moving a possible
-		// charset definition too far from the start (if there is no script
-		// then it's not necessary).
-		html = html.replace(/(\s*)<script/i, `$1<!--Preparse begin-->$1<script>${polyfills}</script>$1<!--Preparse end-->$&`);
+		// Make it the first script (if there is no script then it's not necessary).
+		html = html.replace(/(\s*)<script/i, `\
+$1<!--Preparse begin-->\
+$1<script>setTimeout(()=>{${polyfills}},1)</script>\
+$1<!--Preparse end-->$&`);
 		return html;
 	}
 }();
