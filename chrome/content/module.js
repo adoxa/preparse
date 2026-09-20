@@ -137,7 +137,12 @@ var pp = function() {
 								  subject.contentType.startsWith("image/avif"));
 					if (subject.isMainDocumentChannel) {
 						context.cfg.importmap = null;
-						context.cfg.domain = subject.URI.host.toLowerCase();
+						// Keep the main domain, not iframes, unless it was reloaded.
+						var initial = (subject.loadFlags & subject.LOAD_INITIAL_DOCUMENT_URI)
+									  || context.cfg.reload;
+						if (initial) {
+							context.cfg.domain = subject.URI.host.toLowerCase();
+						}
 						if (context.cfg.state != "on" && domainActive(domains_on, subject.URI.host)) {
 							context.cfg.domain = domainName(domains_on, subject.URI.host);
 							setActive(context.cfg, true);
@@ -147,8 +152,11 @@ var pp = function() {
 							setActive(context.cfg, false);
 							listen = false;
 						} else if (context.cfg.state == "auto") {
-							setActive(context.cfg, context.cfg.reload);
-							context.cfg.reload = false;
+							// Keep the current state for iframes.
+							if (initial) {
+								setActive(context.cfg, context.cfg.reload);
+								context.cfg.reload = false;
+							}
 							listen = true;
 						} else {
 							listen = context.cfg.state == "on";
