@@ -556,7 +556,7 @@ var pp = function() {
 							return fmt;
 						}
 						format(number) {
-							let result= super.format(number);
+							let result = super.format(number);
 							if (this.narrow) {
 								return Intl.NumberFormat.makeNarrow(result);
 							}
