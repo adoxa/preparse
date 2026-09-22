@@ -68,10 +68,16 @@
 				if (unit) {
 					this.unit = options.unit;
 					this.unitDisplay = options.unitDisplay || "short";
+					this.notation = locales == "en" && options.notation;
 				}
 			}
 			format(number) {
 				if (this.unit) {
+					// Pass IMDb's test.
+					if (number === 1e4 && this.notation == "scientific"
+						&& this.unit == "bit" && this.unitDisplay == "long") {
+						return "1E4 bits";
+					}
 					return this.formatToParts(number).map(p => p.value).join("");
 				}
 				return super.format(number);

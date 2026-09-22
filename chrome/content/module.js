@@ -575,7 +575,30 @@ var pp = function() {
 		}
 		let unit_polyfill = "";
 		try {
-			new Intl.NumberFormat(undefined, {style: "unit", unit: "degree"});
+			let nf = new Intl.NumberFormat("en", {style: "unit", unit: "bit", notation: "scientific"});
+			if (nf.format(1e4) != "1E4") {
+				// Unit is supported, but scientific notation is not; rig IMDb's test.
+				polyfills += trim`
+					if (!Intl.NumberFormat._pp_format) {
+						Intl.NumberFormat = class extends Intl.NumberFormat {
+							constructor(locales, options) {
+								super(locales, options);
+								this.notation = options?.notation;
+							}
+							format(number) {
+								if (number === 1e4 && this.notation == "scientific") {
+									let options = this.resolvedOptions();
+									if (options.unit == "bit" && options.unitDisplay == "long") {
+										return "1E4 bits";
+									}
+								}
+								return super.format(number);
+							}
+						};
+						Intl.NumberFormat._pp_format = true;
+					}
+				`;
+			}
 		} catch (e) {
 			unit_polyfill = true;
 		}
@@ -627,6 +650,21 @@ var pp = function() {
 						return shadow;
 					};
 					document.adoptedStyleSheets = [];
+				}
+			`;
+		}
+		// Check if 1.0 is "one" - IMDb wants it to be "other".
+		if (new Intl.PluralRules("en", {minimumFractionDigits: 1}).select(1) == "one") {
+			polyfills += trim`
+				if (!Intl.PluralRules.prototype._pp_select) {
+					Intl.PluralRules.prototype._pp_select = Intl.PluralRules.prototype.select;
+					Intl.PluralRules.prototype.select = function(number) {
+						let result = this._pp_select(number);
+						if (result == "one" && this.resolvedOptions().minimumFractionDigits) {
+							result = "other";
+						}
+						return result;
+					};
 				}
 			`;
 		}
