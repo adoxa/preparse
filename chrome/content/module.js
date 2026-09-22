@@ -573,6 +573,12 @@ var pp = function() {
 				}
 			`;
 		}
+		let unit_polyfill = "";
+		try {
+			new Intl.NumberFormat(undefined, {style: "unit", unit: "degree"});
+		} catch (e) {
+			unit_polyfill = true;
+		}
 		if (preparse.replaceSync) {
 			polyfills += trim`
 				CSSStyleSheet.prototype.replaceSync ??= function(css) {
@@ -627,7 +633,8 @@ var pp = function() {
 		// Make it the first script (if there is no script then it's not necessary).
 		html = html.replace(/(\s*)<script/i, `\
 $1<!--Preparse begin-->\
-$1<script>setTimeout(()=>{${polyfills}},1)</script>\
+$1<script>setTimeout(()=>{${polyfills}},1)</script>${unit_polyfill && `\
+$1<script src="resource://preparse_js/unit.js"></script>`}\
 $1<!--Preparse end-->$&`);
 		return html;
 	}
