@@ -669,11 +669,25 @@ var pp = function() {
 			`;
 		}
 		// Make it the first script (if there is no script then it's not necessary).
-		html = html.replace(/(\s*)<script/i, `\
-$1<!--Preparse begin-->\
-$1<script>setTimeout(()=>{${polyfills}},1)</script>${unit_polyfill && `\
-$1<script src="resource://preparse_js/unit.js"></script>`}\
-$1<!--Preparse end-->$&`);
+		let in_comment = false;
+		for (const match of html.matchAll(/<!--|-->|(\r?\n[ \t]*)?<script\b/ig)) {
+			if (in_comment) {
+				if (match[0][0] == "-") {       // end comment
+					in_comment = false;
+				}
+			} else if (match[0][1] == "!") {    // start comment
+				in_comment = true;
+			} else {							// first script
+				const ws = match[1] || "";
+				html = `${html.slice(0, match.index)}\
+${ws}<!--Preparse begin-->\
+${ws}<script>setTimeout(()=>{${polyfills}},1)</script>${unit_polyfill && `\
+${ws}<script src="resource://preparse_js/unit.js"></script>`}\
+${ws}<!--Preparse end-->\
+${html.slice(match.index)}`;
+				break;
+			}
+		}
 		return html;
 	}
 }();
