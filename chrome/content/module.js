@@ -580,7 +580,7 @@ var pp = function() {
 		let unit_polyfill = "";
 		try {
 			let nf = new Intl.NumberFormat("en", {style: "unit", unit: "bit", notation: "scientific"});
-			if (nf.format(1e4) != "1E4") {
+			if (nf.format(1e4) != "1E4 bit") {
 				// Unit is supported, but scientific notation is not; rig IMDb's test.
 				polyfills += trim`
 					if (!Intl._pp_nf_imdb) {
