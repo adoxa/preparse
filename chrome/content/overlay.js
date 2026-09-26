@@ -28,7 +28,7 @@
 
 	function get_enabled() {
 		var cfg = selected_config();
-		return cfg == null ? [false, false] : [cfg.active, cfg.state];
+		return cfg == null ? [false, "off"] : [cfg.active, cfg.state];
 	}
 
 	function update_menu(enabled) {
@@ -37,10 +37,8 @@
 	}
 
 	function update_status_text(enabled, state) {
-		var str = getString(enabled ? "state.ON" : "state.OFF");
-		if (state != "auto" && (state == "on") == enabled) {
-			str += getString("state.explicit");
-		}
+		var str = getString("state." + (state != "auto" && (state == "on") == enabled
+							? state : enabled === null ? "auto" : enabled ? "aon" : "aoff"));
 		document.getElementById("preparseStatus").label = str;
 		str = getString("context." + state);
 		document.getElementById("preparseStatus").setAttribute("tooltiptext", str);
@@ -94,20 +92,23 @@
 				}
 				return;
 			}
-			cfg.active = !cfg.active;
-			var state = cfg.active ? "on" : "off";
+			var active = !cfg.active;
+			var state = active ? "on" : "off";
 			if (preparse.prefs.getCharPref("initstate") == "auto") {
 				// off -> on! -> off! -> off
 				// on -> off! -> on! -> on
 				if (cfg.state == "auto") {
+					cfg.active_start = cfg.active;
 					cfg.next_state = true;
 				} else if (cfg.next_state) {
 					cfg.next_state = false;
 				} else {
 					state = "auto";
-					cfg.active = !cfg.active;
+					active = cfg.active_start;
+					delete cfg.active_start;
 				}
 			}
+			cfg.active = active;
 			cfg.state = state;
 			update_text();
 		}

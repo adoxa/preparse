@@ -15,8 +15,8 @@ preparse = {
 			browser, worker,
 			cfg: {
 				state,
-				active: cfg?.active ?? state == "on",
-				reload: false,
+				active: cfg ? cfg.active : state == "auto" ? null : state == "on",
+				reload: null,
 				importmap: null,
 				domain: null,
 			}
@@ -98,7 +98,7 @@ var pp = function() {
 
 
 	function setActive(cfg, active) {
-		if (cfg.active != active) {
+		if (cfg.active !== active) {
 			cfg.active = active;
 			Services.obs.notifyObservers(null, "preparse-active-changed", null);
 		}
@@ -155,7 +155,7 @@ var pp = function() {
 							// Keep the current state for iframes.
 							if (initial) {
 								setActive(context.cfg, context.cfg.reload);
-								context.cfg.reload = false;
+								context.cfg.reload = null;
 							}
 							listen = true;
 						} else {
@@ -175,7 +175,7 @@ var pp = function() {
 					// Not http, restore initial state.
 					var context = this.getContext(subject);
 					if (context) {
-						setActive(context.cfg, context.cfg.state == "on");
+						setActive(context.cfg, context.cfg.state == "auto" ? null : context.cfg.state == "on");
 					}
 				}
 			}

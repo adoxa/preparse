@@ -11,7 +11,7 @@
 <!ENTITY options.domains.desc "Домены разделяются запятыми. Поддомены указывать не требуется.">
 <!ENTITY options.CopyToNewTab.title "Копировать текущее состояние в новую вкладку">
 <!ENTITY options.ShowState.title "Показывать в строке состояния">
-<!ENTITY options.ShowState.desc "Авто  : &quot;# OFF&quot; или &quot;# ON&quot;
- Вкл.  : &quot;# ON!&quot;
-Выкл.: &quot;# OFF!&quot;
+<!ENTITY options.ShowState.desc "Авто  : &quot;# &#x25cb;&quot; или &quot;# &#x2713;&quot; или &quot;# &#x2717;&quot;
+ Вкл.  : &quot;# &#x2714;&quot;
+Выкл.: &quot;# &#x2718;&quot;
 Переключение щелчком первой кнопки мыши. Добавление/удаление домена щелчком второй кнопки.">

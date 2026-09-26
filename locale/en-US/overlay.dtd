@@ -11,7 +11,7 @@
 <!ENTITY options.domains.desc "Separate domains with commas. Subdomains are automatically included.">
 <!ENTITY options.CopyToNewTab.title "Copy Current State to New Tab">
 <!ENTITY options.ShowState.title "Show State in Status Bar">
-<!ENTITY options.ShowState.desc "Auto: &quot;# OFF&quot; or &quot;# ON&quot;
-   On: &quot;# ON!&quot;
-  &#x2009;Off: &quot;# OFF!&quot;
+<!ENTITY options.ShowState.desc "Auto: &quot;# &#x25cb;&quot; or &quot;# &#x2713;&quot; or &quot;# &#x2717;&quot;
+   On: &quot;# &#x2714;&quot;
+  &#x2009;Off: &quot;# &#x2718;&quot;
 Click to toggle, right click to add/remove domain.">
