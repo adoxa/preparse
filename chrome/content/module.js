@@ -536,8 +536,8 @@ var pp = function() {
 			});
 		} catch (e) {
 			polyfills += trim`
-				if (!Intl.NumberFormat.makeNarrow) {
-					Intl.NumberFormat = class extends Intl.NumberFormat {
+				if (!Intl._pp_nf_narrow) {
+					Intl._pp_nf_narrow = class extends Intl.NumberFormat {
 						constructor(locales, options) {
 							let narrow;
 							if (options?.currencyDisplay == "narrowSymbol") {
@@ -558,18 +558,22 @@ var pp = function() {
 						format(number) {
 							let result = super.format(number);
 							if (this.narrow) {
-								return Intl.NumberFormat.makeNarrow(result);
+								return Intl._pp_nf_narrow.makeNarrow(result);
 							}
 							return result;
 						}
 						formatToParts(number) {
 							let parts = super.formatToParts(number);
 							if (this.narrow) {
-								parts[0].value = Intl.NumberFormat.makeNarrow(parts[0].value);
+								parts[0].value = Intl._pp_nf_narrow.makeNarrow(parts[0].value);
 							}
 							return parts;
 						}
 					};
+					Intl.NumberFormat = function(locales, options) {
+						return new Intl._pp_nf_narrow(locales, options);
+					};
+					Intl.NumberFormat.prototype = Intl._pp_nf_narrow.prototype;
 				}
 			`;
 		}
@@ -579,8 +583,8 @@ var pp = function() {
 			if (nf.format(1e4) != "1E4") {
 				// Unit is supported, but scientific notation is not; rig IMDb's test.
 				polyfills += trim`
-					if (!Intl.NumberFormat._pp_format) {
-						Intl.NumberFormat = class extends Intl.NumberFormat {
+					if (!Intl._pp_nf_imdb) {
+						Intl.pp_nf_imdb = class extends Intl.NumberFormat {
 							constructor(locales, options) {
 								super(locales, options);
 								this.notation = options?.notation;
@@ -595,7 +599,10 @@ var pp = function() {
 								return super.format(number);
 							}
 						};
-						Intl.NumberFormat._pp_format = true;
+						Intl.NumberFormat = function(locales, options) {
+							return new Intl._pp_nf_imdb(locales, options);
+						};
+						Intl.NumberFormat.prototype = Intl._pp_nf_imdb.prototype;
 					}
 				`;
 			}

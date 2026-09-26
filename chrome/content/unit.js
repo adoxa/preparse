@@ -1,5 +1,5 @@
 (function() {
-	if (!Intl.NumberFormat._pp_unit) {
+	if (!Intl._pp_nf_unit) {
 		const units = {
 			acre:				 { short: "ac",      plural: "acres" },
 			bit:				 { short: "bit",     plural: "bits" },
@@ -47,7 +47,7 @@
 			yard:				 { short: "yd",      plural: "yards" },
 			year:				 { short: "yr",      plural: "years", narrow: "y", short_plural: "yrs" },
 		}
-		Intl.NumberFormat = class extends Intl.NumberFormat {
+		Intl._pp_nf_unit = class extends Intl.NumberFormat {
 			constructor(locales, options) {
 				let unit;
 				if (options?.style == "unit") {
@@ -106,6 +106,9 @@
 				return parts;
 			}
 		};
-		Intl.NumberFormat._pp_unit = true;
+		Intl.NumberFormat = function(locales, options) {
+			return new Intl._pp_nf_unit(locales, options);
+		};
+		Intl.NumberFormat.prototype = Intl._pp_nf_unit.prototype;
 	}
 })();
