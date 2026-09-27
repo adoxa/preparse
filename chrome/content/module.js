@@ -537,7 +537,7 @@ var pp = function() {
 		} catch (e) {
 			polyfills += trim`
 				if (!Intl._pp_nf_narrow) {
-					Intl._pp_nf_narrow = class extends Intl.NumberFormat {
+					Intl._pp_nf_narrow = class extends (Intl._pp_nf_unit ?? Intl.NumberFormat) {
 						constructor(locales, options) {
 							let narrow;
 							if (options?.currencyDisplay == "narrowSymbol") {

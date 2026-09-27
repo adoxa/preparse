@@ -47,7 +47,7 @@
 			yard:				 { short: "yd",      plural: "yards" },
 			year:				 { short: "yr",      plural: "years", narrow: "y", short_plural: "yrs" },
 		}
-		Intl._pp_nf_unit = class extends Intl.NumberFormat {
+		Intl._pp_nf_unit = class extends (Intl._pp_nf_narrow ?? Intl.NumberFormat) {
 			constructor(locales, options) {
 				let unit;
 				if (options?.style == "unit") {
