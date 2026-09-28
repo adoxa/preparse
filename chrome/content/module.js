@@ -574,6 +574,7 @@ var pp = function() {
 						return new Intl._pp_nf_narrow(locales, options);
 					};
 					Intl.NumberFormat.prototype = Intl._pp_nf_narrow.prototype;
+					Intl.NumberFormat.supportedLocalesOf = Intl._pp_nf_narrow.supportedLocalesOf;
 				}
 			`;
 		}
@@ -603,6 +604,7 @@ var pp = function() {
 							return new Intl._pp_nf_imdb(locales, options);
 						};
 						Intl.NumberFormat.prototype = Intl._pp_nf_imdb.prototype;
+						Intl.NumberFormat.supportedLocalesOf = Intl._pp_nf_imdb.supportedLocalesOf;
 					}
 				`;
 			}

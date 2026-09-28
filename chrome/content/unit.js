@@ -110,5 +110,6 @@
 			return new Intl._pp_nf_unit(locales, options);
 		};
 		Intl.NumberFormat.prototype = Intl._pp_nf_unit.prototype;
+		Intl.NumberFormat.supportedLocalesOf = Intl._pp_nf_unit.supportedLocalesOf;
 	}
 })();
