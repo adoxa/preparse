@@ -50,7 +50,7 @@ function rename(script, importmap) {
 	// scan, only detecting one or two characters after a hash, with a symbol
 	// after that.	That should eliminate RGB colors (needing three characters)
 	// and hopefully ids won't be matched.
-	let classes = Array.from(script.matchAll(/([$\w]+)\s*=\s*(?:[$\w]+\))?class(?: [$\w]+)? extends|class ([$\w]+) extends/g));
+	let classes = Array.from(script.matchAll(/[^$\w]([$\w]+)\s*=\s*(?:[$\w]+\))?class(?: [$\w]+)? extends|class ([$\w]+) extends/g));
 	let new_script = script.slice(0, classes[0]?.index);
 	for (let i = 0; i < classes.length; ++i) {
 		let id = classes[i][1] || classes[i][2];
