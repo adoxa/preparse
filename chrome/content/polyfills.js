@@ -184,7 +184,10 @@
 					if (/\D/.test(narrow[0]) || /\W/.test(narrow.at(-1))) {
 						return narrow;
 					}
-					return fmt;
+					return fmt.replace(/USD\s?/, "$")
+							  .replace(/EUR\s?/, "\u20AC")
+							  .replace(/GBP\s?/, "\xA3")
+							  .replace(/JPY\s?/, "\xA5");
 				}
 
 				format(number) {
