@@ -511,6 +511,14 @@ var pp = function() {
 						type: /\d/.test(p[0]) ? "integer" : "literal",
 						value: p
 					}));
+					// A leading digit results in an empty initial split.
+					if (!parts[0].value) {
+						parts.splice(0, 1);
+					}
+					// Similarly with a trailing digit.
+					if (!parts.at(-1).value) {
+						parts.splice(-1);
+					}
 					for (let i = parts.length; --i >= 0;) {
 						if (parts[i].type == "integer") {
 							if (fraction) {
