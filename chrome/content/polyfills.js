@@ -179,8 +179,9 @@
 
 				static makeNarrow(fmt) {
 					// There's "Cg." for Caribbean guilder.
-					let narrow = fmt.replace(/^[\sA-Za-z.]*/, "");
-					if (/\D/.test(narrow[0])) {
+					let narrow = fmt.replace(/^[\sA-Za-z.]+|[A-Za-z.]+(?=\W$)/, "");
+					console.log(fmt, narrow);
+					if (/\D/.test(narrow[0]) || /\W/.test(narrow.at(-1))) {
 						return narrow;
 					}
 					return fmt;
@@ -212,7 +213,9 @@
 					let parts = super.formatToParts(number);
 
 					if (this.narrow) {
-						parts[0].value = Intl._pp_nf.makeNarrow(parts[0].value);
+						// If it's not first, assume last.
+						let i = parts[0].type == "currency" ? 0 : parts.length - 1;
+						parts[i].value = Intl._pp_nf.makeNarrow(parts[i].value);
 					}
 
 					if (this.unit) {
