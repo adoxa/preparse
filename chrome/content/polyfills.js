@@ -1,11 +1,11 @@
 (function() {
-	IDBTransaction.prototype.commit ??= () => {};
+	IDBTransaction.prototype.commit ??= function commit() {};
 
-	Blob.prototype.text ??= function() {
+	Blob.prototype.text ??= function text() {
 		return new Response(this).text();
 	}
 
-	Intl.RelativeTimeFormat.prototype.formatToParts ??= function(value, unit) {
+	Intl.RelativeTimeFormat.prototype.formatToParts ??= function formatToParts(value, unit) {
 		let fraction = value % 1;
 		value = this.format(value, unit);
 		if (unit.endsWith("s")) {
@@ -42,7 +42,7 @@
 	};
 
 	if (!CSSStyleSheet.prototype.replaceSync) {
-		CSSStyleSheet.prototype.replaceSync = function(css) {
+		CSSStyleSheet.prototype.replaceSync = function replaceSync(css) {
 			while (this.cssRules.length) {
 				this.deleteRule(0);
 			}
@@ -81,7 +81,7 @@
 		};
 		// If replaceSync exists, adoptedStyleSheets is also expected.
 		Element.prototype._pp_attachShadow = Element.prototype.attachShadow;
-		Element.prototype.attachShadow = function(options) {
+		Element.prototype.attachShadow = function attachShadow(options) {
 			const shadow = this._pp_attachShadow(options);
 			shadow.adoptedStyleSheets = [];
 			return shadow;
@@ -93,7 +93,7 @@
 	if (!Intl.PluralRules.prototype._pp_select) {
 		if (new Intl.PluralRules("en", {minimumFractionDigits: 1}).select(1) == "one") {
 			Intl.PluralRules.prototype._pp_select = Intl.PluralRules.prototype.select;
-			Intl.PluralRules.prototype.select = function(number) {
+			Intl.PluralRules.prototype.select = function select(number) {
 				let result = this._pp_select(number);
 				if (result == "one" && this.resolvedOptions().minimumFractionDigits) {
 					result = "other";
