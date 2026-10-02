@@ -1,6 +1,10 @@
 (function() {
 	IDBTransaction.prototype.commit ??= () => {};
 
+	Blob.prototype.text ??= function() {
+		return new Response(this).text();
+	}
+
 	Intl.RelativeTimeFormat.prototype.formatToParts ??= function(value, unit) {
 		let fraction = value % 1;
 		value = this.format(value, unit);
