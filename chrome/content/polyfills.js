@@ -184,7 +184,6 @@
 				static makeNarrow(fmt) {
 					// There's "Cg." for Caribbean guilder.
 					let narrow = fmt.replace(/^[\sA-Za-z.]+|[A-Za-z.]+(?=\W$)/, "");
-					console.log(fmt, narrow);
 					if (/\D/.test(narrow[0]) || /\W/.test(narrow.at(-1))) {
 						return narrow;
 					}
