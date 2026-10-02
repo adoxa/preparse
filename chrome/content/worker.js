@@ -12,7 +12,7 @@ onmessage = function(event) {
 					script = "window.importmap = [[IMPORTMAP]]";
 					tag = tag.replace("importmap", "");
 				} else if (script.length) {
-					script = rename(script, importmap);
+					script = rename(script, importmap, false);
 				}
 				return tag + script + tag_close;
 			}
@@ -35,7 +35,7 @@ onmessage = function(event) {
 }
 
 
-function rename(script, importmap) {
+function rename(script, importmap, importmeta=true) {
 	if (importmap) {
 		function map_import(match, kw, quote, name) {
 			if (name in importmap)
@@ -65,7 +65,7 @@ function rename(script, importmap) {
 	}
 
 	// Provide import.meta.resolve, if necessary.
-	if (new_script.includes("import.meta.resolve")) {
+	if (importmeta && new_script.includes("import.meta.resolve")) {
 		let use_map = importmap ? "u=window.importmap[u]||u;" : "";
 		new_script = `import.meta.resolve=function(u){${use_map}return new URL(u,import.meta.url).href};` + new_script;
 	}
