@@ -1,4 +1,4 @@
-(function() {
+window.preparse ??= function() {
 	IDBTransaction.prototype.commit ??= function commit() {};
 
 	Blob.prototype.text ??= function text() {
@@ -80,9 +80,9 @@
 			}
 		};
 		// If replaceSync exists, adoptedStyleSheets is also expected.
-		Element.prototype._pp_attachShadow = Element.prototype.attachShadow;
+		const attachShadow_org = Element.prototype.attachShadow;
 		Element.prototype.attachShadow = function attachShadow(options) {
-			const shadow = this._pp_attachShadow(options);
+			const shadow = attachShadow_org.call(this, options);
 			shadow.adoptedStyleSheets = [];
 			return shadow;
 		};
@@ -90,169 +90,161 @@
 	}
 
 	// Check if the plural of 1.0 is "one" - IMDb wants it to be "other".
-	if (!Intl.PluralRules.prototype._pp_select) {
-		if (new Intl.PluralRules("en", {minimumFractionDigits: 1}).select(1) == "one") {
-			Intl.PluralRules.prototype._pp_select = Intl.PluralRules.prototype.select;
-			Intl.PluralRules.prototype.select = function select(number) {
-				let result = this._pp_select(number);
-				if (result == "one" && this.resolvedOptions().minimumFractionDigits) {
-					result = "other";
-				}
-				return result;
-			};
-		} else {
-			Intl.PluralRules.prototype._pp_select = true;
-		}
+	if (new Intl.PluralRules("en", {minimumFractionDigits: 1}).select(1) == "one") {
+		const select_org = Intl.PluralRules.prototype.select;
+		Intl.PluralRules.prototype.select = function select(number) {
+			let result = select_org.call(this, number);
+			if (result == "one" && this.resolvedOptions().minimumFractionDigits) {
+				result = "other";
+			}
+			return result;
+		};
 	}
 
-	if (!Intl._pp_nf) {
-		let nf = {};
-		try {
-			Intl.NumberFormat("en", {style: "currency", currency: "USD", currencyDisplay: "narrowSymbol"});
-		} catch (e) {
-			nf.narrow = true;
+	let nf = {};
+	try {
+		Intl.NumberFormat("en", {style: "currency", currency: "USD", currencyDisplay: "narrowSymbol"});
+	} catch (e) {
+		nf.narrow = true;
+	}
+	try {
+		let u = new Intl.NumberFormat("en", {style: "unit", unit: "bit", notation: "scientific"});
+		if (u.format(1e4) != "1E4 bit") {
+			// Unit is supported, but scientific notation is not; rig IMDb's test.
+			nf.imdb = true;
 		}
-		try {
-			let u = new Intl.NumberFormat("en", {style: "unit", unit: "bit", notation: "scientific"});
-			if (u.format(1e4) != "1E4 bit") {
-				// Unit is supported, but scientific notation is not; rig IMDb's test.
-				nf.imdb = true;
+	} catch (e) {
+		nf.unit = nf.imdb = true;
+	}
+	if (Object.keys(nf).length) {
+		const units = nf.unit && getUnits();
+		class PP_NF extends Intl.NumberFormat {
+			constructor(locales, options) {
+				let narrow;
+				if (nf.narrow && options?.currencyDisplay == "narrowSymbol") {
+					options.currencyDisplay = "symbol";
+					narrow = true;
+				}
+
+				let unit;
+				if (nf.unit && options?.style == "unit") {
+					if (options.unit === undefined) {
+						throw TypeError("undefined unit in NumberFormat() with unit style");
+					}
+					if (!(options.unit in units)) {
+						throw RangeError(`invalid unit "${options.unit}" in NumberFormat()`);
+					}
+					if (options.unitDisplay !== undefined
+						&& !["short", "narrow", "long"].includes(options.unitDisplay)) {
+						throw RangeError(`invalid unitDisplay "${options.unitDisplay}" in NumberFormat()`);
+					}
+					options.style = "decimal";
+					unit = true;
+				}
+
+				super(locales, options);
+
+				if (narrow) {
+					this.narrow = narrow;
+				}
+
+				if (unit) {
+					this.unit = options.unit;
+					this.unitDisplay = options.unitDisplay || "short";
+				}
+
+				if (nf.imdb && locales == "en") {
+					this.notation = options?.notation;
+				}
 			}
-		} catch (e) {
-			nf.unit = nf.imdb = true;
+
+			resolvedOptions() {
+				let options = super.resolvedOptions();
+
+				if (this.narrow) {
+					options.currencyDisplay = "narrowSymbol";
+				}
+
+				if (this.unit) {
+					options.style = "unit";
+					options.unit = this.unit;
+					options.unitDisplay = this.unitDisplay;
+				}
+
+				return options;
+			}
+
+			static makeNarrow(fmt) {
+				// There's "Cg." for Caribbean guilder.
+				let narrow = fmt.replace(/^[\sA-Za-z.]+|[A-Za-z.]+(?=\W$)/, "");
+				if (/\D/.test(narrow[0]) || /\W/.test(narrow.at(-1))) {
+					return narrow;
+				}
+				return fmt.replace(/USD\s?/, "$")
+						  .replace(/EUR\s?/, "\u20AC")
+						  .replace(/GBP\s?/, "\xA3")
+						  .replace(/JPY\s?/, "\xA5");
+			}
+
+			format(number) {
+				let result = super.format(number);
+
+				if (this.narrow) {
+					return PP_NF.makeNarrow(result);
+				}
+
+				// Pass IMDb's test.
+				if (number === 1e4 && this.notation == "scientific") {
+					let options = this.resolvedOptions();
+					if (options.unit == "bit" && options.unitDisplay == "long") {
+						return "1E4 bits";
+					}
+				}
+
+				if (this.unit) {
+					return this.formatToParts(number).map(p => p.value).join("");
+				}
+
+				return result;
+			}
+
+			formatToParts(number) {
+				let parts = super.formatToParts(number);
+
+				if (this.narrow) {
+					// If it's not first, assume last.
+					let i = parts[0].type == "currency" ? 0 : parts.length - 1;
+					parts[i].value = PP_NF.makeNarrow(parts[i].value);
+				}
+
+				if (this.unit) {
+					// 1 (or -1) is singular, 1.0 is not.
+					let i = parts[0].type == "minusSign" ? 1 : 0;
+					const one = parts[i].value == "1" && parts.length == i + 1;
+					const unit = units[this.unit];
+					if (this.unitDisplay == "long"
+						|| (this.unitDisplay == "short" && !unit.short_no_space)) {
+						parts.push({type: "literal", value: " "});
+					}
+					let value;
+					if (this.unitDisplay == "short") {
+						value = !one && unit.short_plural || unit.short;
+					} else if (this.unitDisplay == "long") {
+						value = one ? unit.one || this.unit : unit.plural;
+					} else /* (this.unitDisplay == "narrow") */ {
+						value = unit.narrow || unit.short;
+					}
+					parts.push({type: "unit", value});
+				}
+
+				return parts;
+			}
 		}
-		if (Object.keys(nf).length == 0) {
-			Intl._pp_nf = true;
-		} else {
-			const units = nf.unit && getUnits();
-			Intl._pp_nf = class extends Intl.NumberFormat {
-				constructor(locales, options) {
-					let narrow;
-					if (nf.narrow && options?.currencyDisplay == "narrowSymbol") {
-						options.currencyDisplay = "symbol";
-						narrow = true;
-					}
-
-					let unit;
-					if (nf.unit && options?.style == "unit") {
-						if (options.unit === undefined) {
-							throw TypeError("undefined unit in NumberFormat() with unit style");
-						}
-						if (!(options.unit in units)) {
-							throw RangeError(`invalid unit "${options.unit}" in NumberFormat()`);
-						}
-						if (options.unitDisplay !== undefined
-							&& !["short", "narrow", "long"].includes(options.unitDisplay)) {
-							throw RangeError(`invalid unitDisplay "${options.unitDisplay}" in NumberFormat()`);
-						}
-						options.style = "decimal";
-						unit = true;
-					}
-
-					super(locales, options);
-
-					if (narrow) {
-						this.narrow = narrow;
-					}
-
-					if (unit) {
-						this.unit = options.unit;
-						this.unitDisplay = options.unitDisplay || "short";
-					}
-
-					if (nf.imdb && locales == "en") {
-						this.notation = options?.notation;
-					}
-				}
-
-				resolvedOptions() {
-					let options = super.resolvedOptions();
-
-					if (this.narrow) {
-						options.currencyDisplay = "narrowSymbol";
-					}
-
-					if (this.unit) {
-						options.style = "unit";
-						options.unit = this.unit;
-						options.unitDisplay = this.unitDisplay;
-					}
-
-					return options;
-				}
-
-				static makeNarrow(fmt) {
-					// There's "Cg." for Caribbean guilder.
-					let narrow = fmt.replace(/^[\sA-Za-z.]+|[A-Za-z.]+(?=\W$)/, "");
-					if (/\D/.test(narrow[0]) || /\W/.test(narrow.at(-1))) {
-						return narrow;
-					}
-					return fmt.replace(/USD\s?/, "$")
-							  .replace(/EUR\s?/, "\u20AC")
-							  .replace(/GBP\s?/, "\xA3")
-							  .replace(/JPY\s?/, "\xA5");
-				}
-
-				format(number) {
-					let result = super.format(number);
-
-					if (this.narrow) {
-						return Intl._pp_nf.makeNarrow(result);
-					}
-
-					// Pass IMDb's test.
-					if (number === 1e4 && this.notation == "scientific") {
-						let options = this.resolvedOptions();
-						if (options.unit == "bit" && options.unitDisplay == "long") {
-							return "1E4 bits";
-						}
-					}
-
-					if (this.unit) {
-						return this.formatToParts(number).map(p => p.value).join("");
-					}
-
-					return result;
-				}
-
-				formatToParts(number) {
-					let parts = super.formatToParts(number);
-
-					if (this.narrow) {
-						// If it's not first, assume last.
-						let i = parts[0].type == "currency" ? 0 : parts.length - 1;
-						parts[i].value = Intl._pp_nf.makeNarrow(parts[i].value);
-					}
-
-					if (this.unit) {
-						// 1 (or -1) is singular, 1.0 is not.
-						let i = parts[0].type == "minusSign" ? 1 : 0;
-						const one = parts[i].value == "1" && parts.length == i + 1;
-						const unit = units[this.unit];
-						if (this.unitDisplay == "long"
-							|| (this.unitDisplay == "short" && !unit.short_no_space)) {
-							parts.push({type: "literal", value: " "});
-						}
-						let value;
-						if (this.unitDisplay == "short") {
-							value = !one && unit.short_plural || unit.short;
-						} else if (this.unitDisplay == "long") {
-							value = one ? unit.one || this.unit : unit.plural;
-						} else /* (this.unitDisplay == "narrow") */ {
-							value = unit.narrow || unit.short;
-						}
-						parts.push({type: "unit", value});
-					}
-
-					return parts;
-				}
-			};
-			Intl.NumberFormat = function NumberFormat(locales, options) {
-				return new Intl._pp_nf(locales, options);
-			};
-			Intl.NumberFormat.prototype = Intl._pp_nf.prototype;
-			Intl.NumberFormat.supportedLocalesOf = Intl._pp_nf.supportedLocalesOf;
-		}
+		Intl.NumberFormat = function NumberFormat(locales, options) {
+			return new PP_NF(locales, options);
+		};
+		Intl.NumberFormat.prototype = PP_NF.prototype;
+		Intl.NumberFormat.supportedLocalesOf = PP_NF.supportedLocalesOf;
 	}
 
 	function getUnits() {
@@ -304,4 +296,6 @@
 			year:				 { short: "yr",      plural: "years", narrow: "y", short_plural: "yrs" },
 		}
 	}
-})();
+
+	return true;
+}();
