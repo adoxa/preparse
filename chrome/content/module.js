@@ -124,6 +124,13 @@ var pp = function() {
 			if (topic == 'http-on-examine-response' ||
 				topic == 'http-on-examine-cached-response') {
 				if (subject instanceof Ci.nsIHttpChannel) {
+					const contentType = subject.contentType;
+					if (!(contentType == "text/html" ||
+						  contentType.endsWith("javascript") ||
+						  contentType.endsWith("unknown-content-type") ||
+						  contentType.startsWith("image/avif"))) {
+						return;
+					}
 					subject.QueryInterface(Ci.nsITraceableChannel);
 					subject.QueryInterface(Ci.nsIHttpChannel);
 
@@ -134,7 +141,7 @@ var pp = function() {
 
 					var listen = context.cfg.active ||
 								 (context.cfg.state != "off" &&
-								  subject.contentType.startsWith("image/avif"));
+								  contentType.startsWith("image/avif"));
 					if (subject.isMainDocumentChannel) {
 						context.cfg.importmap = null;
 						// Keep the main domain, not iframes, unless it was reloaded.
