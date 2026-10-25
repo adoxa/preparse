@@ -6,7 +6,7 @@
 		<!-- Required Items -->
 		<em:id>preparse@adoxa</em:id>
 		<em:name>Preparse</em:name>
-		<em:version>0.9</em:version>
+		<em:version>0.9.1</em:version>
 		<em:description>Modify HTML &amp; Javascript to address some issues.</em:description>
 		<em:creator>Jason "adoxa" Hood</em:creator>
 		<em:contributor>Ben Murphy (Javascript Deminifier)</em:contributor>
@@ -25,9 +25,9 @@
 
 		<em:targetApplication>
 			<Description>
-				<!-- Basilisk -->
+				<!-- Basilisk (or PowerFox Classic) -->
 				<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
-				<em:minVersion>52.9.2023.05.17</em:minVersion>
+				<em:minVersion>52.9</em:minVersion>
 				<em:maxVersion>55.*</em:maxVersion>
 			</Description>
 
