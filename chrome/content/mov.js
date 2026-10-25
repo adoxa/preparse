@@ -39,6 +39,35 @@ function avif2obu(ab) {
   let pitm = 0;
   let data = null;
 
+  // Find pitm first, in case it occurs after iloc.
+  while (pos < len && !pitm) {
+    const size = getU32();
+    const type = getU32();
+    const end = pos + size - BOX_HEADER_SIZE;
+    assert(size >= BOX_HEADER_SIZE && end <= len, "corrupted file");
+
+    switch (type) {
+    case BOX_META:
+      pos += 1; // version
+      pos += 3; // flags
+      continue;
+    case BOX_IPRP:
+      continue;
+    case BOX_IPCO:
+      continue;
+    case BOX_PITM:
+      pos += 1; // version
+      pos += 3; // flags
+      pitm = getU16();
+      break;
+    }
+
+    pos = end;
+  }
+
+  assert(pitm, "no primary item");
+
+  pos = 0;
   while (pos < len) {
     const size = getU32();
     const type = getU32();
@@ -65,11 +94,6 @@ function avif2obu(ab) {
       pos += 3; // flags
       width = getU32();
       height = getU32();
-      break;
-    case BOX_PITM:
-      pos += 1; // version
-      pos += 3; // flags
-      pitm = getU16();
       break;
     case BOX_ILOC:
       pos += 1; // version
