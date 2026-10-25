@@ -38,6 +38,15 @@ onmessage = function(event) {
 function rename(script, importmap, importmeta=true) {
 	if (importmap) {
 		function map_import(match, kw, quote, name) {
+			if (!(name in importmap) && name.startsWith("./")) {
+				const base = name.slice(2);
+				for (const imp in importmap) {
+					if (imp.endsWith(base)) {
+						name = imp;
+						break;
+					}
+				}
+			}
 			if (name in importmap)
 				return `${kw}${quote}${importmap[name]}${quote}`;
 			return match;
