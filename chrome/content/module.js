@@ -141,7 +141,8 @@ var pp = function() {
 
 					var listen = context.cfg.active ||
 								 (context.cfg.state != "off" &&
-								  contentType.startsWith("image/avif"));
+								  (contentType.startsWith("image/avif") ||
+								   subject.URI.spec.includes(".avif")));
 					if (subject.isMainDocumentChannel) {
 						context.cfg.importmap = null;
 						// Keep the main domain, not iframes, unless it was reloaded.
