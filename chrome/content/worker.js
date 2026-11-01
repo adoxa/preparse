@@ -38,17 +38,27 @@ onmessage = function(event) {
 function rename(script, importmap, importmeta=true) {
 	if (importmap) {
 		function map_import(match, kw, quote, name) {
-			if (!(name in importmap) && name.startsWith("./")) {
+			let importname;
+			if (name in importmap) {
+				importname = importmap[name];
+			} else if (name.startsWith("./")) {
 				const base = name.slice(2);
 				for (const imp in importmap) {
 					if (imp.endsWith(base)) {
-						name = imp;
+						importname = importmap[imp];
+						break;
+					}
+				}
+			} else {
+				for (const imp in importmap) {
+					if (name.startsWith(imp)) {
+						importname = name.replace(imp, importmap[imp]);
 						break;
 					}
 				}
 			}
-			if (name in importmap)
-				return `${kw}${quote}${importmap[name]}${quote}`;
+			if (importname)
+				return `${kw}${quote}${importname}${quote}`;
 			return match;
 		}
 		script = script.replaceAll(/(from|import)\s*(['"])(.*?)\2/g, map_import);
