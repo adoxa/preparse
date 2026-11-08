@@ -41,6 +41,8 @@ var pp = function() {
 	const Cc = Components.classes;
 	const Ci = Components.interfaces;
 
+	const GHWORKER = "https://github.com/assets-cdn/worker/";
+
 	var state, domains_on, domains_off, contentTypes;
 
 
@@ -136,7 +138,13 @@ var pp = function() {
 
 					var context = this.getContext(this.getWindowFromChannel(subject));
 					if (!context) {
-						return;
+						// No window, could be a GitHub worker (we wouldn't
+						// be here if Preparse was off).
+						if (subject.URI.spec.startsWith(GHWORKER)) {
+							context = {cfg: {active: true}};
+						} else {
+							return;
+						}
 					}
 
 					var listen = context.cfg.active ||
@@ -353,6 +361,14 @@ var pp = function() {
 							|| new_js.includes('generator" content="Discourse')) {
 							setActive(t.cfg, true);
 						}
+					}
+				} else if (request.URI.spec.startsWith(GHWORKER)) {
+					// GitHub uses module workers, replace with script import.
+					// The script checks performance, which isn't available to
+					// the worker, provide it.
+					let imp = /^import ('.*')$/.exec(new_js)?.[1];
+					if (imp) {
+						new_js = `const performance={mark:()=>{}};importScripts(${imp})`;
 					}
 				}
 				if (event.data[1]) {
