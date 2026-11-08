@@ -1,5 +1,6 @@
 (function() {
 	Components.utils.import("resource://preparse_js/module.js");
+	preparse.worker = window.Worker;
 
 	const stringBundle = Services.strings.createBundle("chrome://preparse/locale/menu.properties");
 	const getString = stringBundle.GetStringFromName;
@@ -209,7 +210,7 @@
 		if (preparse.prefs.getBoolPref("copystate")) {
 			cfg = selected_config();
 		}
-		preparse.add(browser, window.Worker, cfg);
+		preparse.add(browser, cfg);
 	}
 
 	function tabClose(event) {
@@ -227,7 +228,7 @@
 			container.addEventListener("TabOpen", tabOpen, false);
 			container.addEventListener("TabClose", tabClose, false);
 			container.addEventListener("TabSelect", tabSelect, false);
-			container.childNodes.forEach(c => preparse.add(gBrowser.getBrowserForTab(c), window.Worker));
+			container.childNodes.forEach(c => preparse.add(gBrowser.getBrowserForTab(c)));
 		}
 	}
 

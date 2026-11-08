@@ -9,10 +9,10 @@ preparse = {
 
 	prefs: Services.prefs.getBranch("extensions.preparse."),
 
-	add: function(browser, worker, cfg) {
+	add: function(browser, cfg) {
 		var state = cfg?.state ?? this.prefs.getCharPref("initstate");
 		this.windows.push({
-			browser, worker,
+			browser,
 			cfg: {
 				state,
 				active: cfg ? cfg.active : state == "auto" ? null : state == "on",
@@ -319,10 +319,10 @@ var pp = function() {
 	preparseListener.prototype.spawnWorker = function(request, context, statusCode) {
 		var worker;
 		if (this.avif) {
-			worker = new this.worker("chrome://preparse/content/avif.js");
+			worker = new preparse.worker("chrome://preparse/content/avif.js");
 			worker.postMessage({type: "avif", data: this.receivedData}, this.receivedData);
 		} else {
-			worker = new this.worker("chrome://preparse/content/worker.js");
+			worker = new preparse.worker("chrome://preparse/content/worker.js");
 			worker.postMessage([this.receivedData, this.html, this.cfg.importmap]);
 		}
 		this.receivedData = null;
