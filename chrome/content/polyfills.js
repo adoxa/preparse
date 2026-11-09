@@ -41,6 +41,14 @@ window.preparse ??= function() {
 		return parts;
 	};
 
+	try {
+		new BigInt(1).toLocaleString();
+	} catch (e) {
+		BigInt.prototype.toLocaleString = function toLocaleString(locales, options) {
+			return new Intl.NumberFormat(locales, options).format(this);
+		}
+	}
+
 	if (!CSSStyleSheet.prototype.replaceSync) {
 		CSSStyleSheet.prototype.replaceSync = function replaceSync(css) {
 			while (this.cssRules.length) {
