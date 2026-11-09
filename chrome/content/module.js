@@ -362,7 +362,7 @@ var pp = function() {
 							setActive(t.cfg, true);
 						}
 					}
-				} else if (request.URI.spec.startsWith(GHWORKER)) {
+				} else if (request.URI?.spec.startsWith(GHWORKER)) {
 					// GitHub uses module workers, replace with script import.
 					// The script checks performance, which isn't available to
 					// the worker, provide it.
