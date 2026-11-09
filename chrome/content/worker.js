@@ -72,7 +72,7 @@ function rename(script, importmap, importmeta=true) {
 	let classes = Array.from(script.matchAll(/[^$\w]([$\w]+)\s*=\s*(?:[$\w]+\))?class(?: [$\w]+)? extends|class ([$\w]+) extends/g));
 	let new_script = script.slice(0, classes[0]?.index);
 	for (let i = 0; i < classes.length; ++i) {
-		let id = classes[i][1] || classes[i][2];
+		let id = (classes[i][1] || classes[i][2]).replaceAll("$", "$$$$");
 		let start = classes[i].index;
 		let end = region(script, start);
 		new_script += script.slice(start, end).replace(/([^'"`]#)([$a-zA-Z_][$\w]?)(?=\W)/g, `$1${id}_$2`);
