@@ -65,23 +65,20 @@ function rename(script, importmap, importmeta=true) {
 	}
 
 	// Prefix private elements from extended classes with the new class name.
-	// E.g. "class Y extends X { #e }" becomes "#Y_e".  It doesn't do a syntax
-	// scan, only detecting one or two characters after a hash (with no quote
-	// before), with a symbol after that.  That should eliminate RGB colors
-	// (needing three characters) and hopefully ids won't be matched.
+	// E.g. "class Y extends X { #e }" becomes "#Y_e".
 	let classes = Array.from(script.matchAll(/[^$\w]([$\w]+)\s*=\s*(?:[$\w]+\))?class(?: [$\w]+)? extends|class ([$\w]+) extends/g));
-	let new_script = script.slice(0, classes[0]?.index);
+	let new_script = [script.slice(0, classes[0]?.index)];
 	for (let i = 0; i < classes.length; ++i) {
-		let id = (classes[i][1] || classes[i][2]).replaceAll("$", "$$$$");
+		let id = (classes[i][1] || classes[i][2]) + "_";
 		let start = classes[i].index;
-		let end = region(script, start);
-		new_script += script.slice(start, end).replace(/([^'"`]#)([$a-zA-Z_][$\w]?)(?=\W)/g, `$1${id}_$2`);
+		let end = privateRename(script, start, id, new_script);
 		// Skip nested classes.
 		while (end > classes[i+1]?.index) {
 			++i;
 		}
-		new_script += script.slice(end, classes[i+1]?.index);
+		new_script.push(script.slice(end, classes[i+1]?.index));
 	}
+	new_script = new_script.join("");
 
 	// Provide import.meta.resolve, if necessary.
 	if (importmeta && new_script.includes("import.meta.resolve")) {
@@ -93,21 +90,65 @@ function rename(script, importmap, importmeta=true) {
 }
 
 
-// Return the index of the closing brace that matches the one after start.
-function region(script, start) {
-	// Braces tend to be balanced, even in quotes & comments, so keep it simple.
-	let braces = 0;
-	while (script[start] !== undefined) {
-		if (script[start] == '{') {
+// Return the index of the closing brace that matches the opening one after pos,
+// prefixing private elements as we go.
+function privateRename(script, pos, id, new_script) {
+	let ch, braces = 0, instring = false, intemplate = false;
+	let start = pos;
+	while ((ch = script[pos]) !== undefined) {
+		if (instring) {
+			if (ch == instring) {
+				instring = false;
+			} else if (ch == '\\') {
+				++pos;
+			}
+		} else if (ch == "'" || ch == '"') {
+			instring = ch;
+		} else if (intemplate) {
+			if (ch == "`") {
+				intemplate = false;
+			} else if (ch == '$' && script[pos+1] == '{') {
+				new_script.push(script.slice(start, pos));
+				start = pos = privateRename(script, pos, id, new_script);
+			} else if (ch == '\\') {
+				++pos;
+			}
+		} else if (ch == "`") {
+			intemplate = true;
+		} else if (ch == '/') {
+			let block = script[pos+1] == '*';
+			if (block || script[pos+1] == '/') {
+				pos = script.indexOf(block ? "*/" : '\n', pos + 2);
+				if (pos == -1) {
+					pos = script.length;
+				} else if (block) {
+					++pos;
+				}
+			} else {
+				// Assume a regex if the previous character is '('
+				// (function or comparison), '=' (assignment or comparison) or
+				// '!' (comparison).
+				let prev = pos;
+				while (--prev > 0 && /\s/.test(script[prev])) ;
+				if ("(=!".includes(script[prev])) {
+					instring = ch;
+				}
+			}
+		} else if (ch == '{') {
 			++braces;
-		} else if (script[start] == '}') {
+		} else if (ch == '}') {
 			if (--braces == 0) {
 				break;
 			}
+		} else if (ch == '#') {
+			new_script.push(script.slice(start, pos + 1));
+			new_script.push(id);
+			start = pos + 1;
 		}
-		++start;
+		++pos;
 	}
-	return start;
+	new_script.push(script.slice(start, pos));
+	return pos;
 }
 
 
