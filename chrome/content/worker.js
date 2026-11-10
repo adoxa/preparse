@@ -62,6 +62,34 @@ function rename(script, importmap, importmeta=true) {
 			return match;
 		}
 		script = script.replaceAll(/(from|import)\s*(['"])(.*?)\2/g, map_import);
+		if (/\bimport\(/.test(script)) {
+			function trim(strings) {
+				return strings.raw[0].replace(/\/\/.*$/gm, "").replace(/\s{2,}/g, " ");
+			}
+			script = trim`function importPP(name) {
+				if (window.importmap && typeof name == "string" && !/^https?:/.test(name)) {
+					if (name in window.importmap) {
+						name = window.importmap[name];
+					} else if (name.startsWith("./")) {
+						const base = name.slice(2);
+						for (const imp in window.importmap) {
+							if (imp.endsWith(base)) {
+								name = window.importmap[imp];
+								break;
+							}
+						}
+					} else {
+						for (const imp in window.importmap) {
+							if (name.startsWith(imp)) {
+								name = name.replace(imp, window.importmap[imp]);
+								break;
+							}
+						}
+					}
+				}
+				return import(name);
+			}` + script.replaceAll(/\bimport\(/g, "importPP(");
+		}
 	}
 
 	// Prefix private elements from extended classes with the new class name.
