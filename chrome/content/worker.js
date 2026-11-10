@@ -110,7 +110,7 @@ function rename(script, importmap, importmeta=true) {
 
 	// Provide import.meta.resolve, if necessary.
 	if (importmeta && new_script.includes("import.meta.resolve")) {
-		let use_map = importmap ? "u=window.importmap[u]||u;" : "";
+		let use_map = importmap ? "u=window.importmap?.[u]||u;" : "";
 		new_script = `import.meta.resolve=function(u){${use_map}return new URL(u,import.meta.url).href};` + new_script;
 	}
 
