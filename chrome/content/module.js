@@ -44,6 +44,7 @@ var pp = function() {
 	const GHWORKER = "https://github.com/assets-cdn/worker/";
 
 	var state, domains_on, domains_off, contentTypes;
+	var AV1enabled = Services.prefs.getBoolPref("media.av1.enabled");
 
 
 	var prefsObserver = {
@@ -59,6 +60,9 @@ var pp = function() {
 				case "initstate":    this.updateState(); break;
 				case "showstate":
 					Services.obs.notifyObservers(null, "preparse-show-changed", null);
+					break;
+				case "media.av1.enabled":
+					AV1enabled = Services.prefs.getBoolPref("media.av1.enabled");
 					break;
 			}
 		},
@@ -88,6 +92,7 @@ var pp = function() {
 			this.updateDomains("domains");
 			this.updateDomains("domains_off");
 			this.updateContentTypes();
+			Services.prefs.addObserver("media.av1.", this, false);
 		},
 
 		QueryInterface: function(aIID) {
@@ -443,6 +448,7 @@ var pp = function() {
 	function decodeMov(arr, window) {
 		const blob = new window.Blob([arr], {type: "video/mp4"});
 		const blobURL = window.URL.createObjectURL(blob);
+		let disableAV1;
 		return new Promise((resolve, reject) => {
 			const vid = window.document.createElement("video");
 			vid.addEventListener("loadeddata", () => {
@@ -456,7 +462,14 @@ var pp = function() {
 			vid.muted = true;
 			vid.src = blobURL;
 			vid.play();
+			if (!AV1enabled) {
+				Services.prefs.setBoolPref("media.av1.enabled", true);
+				disableAV1 = true;
+			}
 		}).then(vid => {
+			if (disableAV1) {
+				Services.prefs.setBoolPref("media.av1.enabled", false);
+			}
 			const c = window.document.createElement("canvas");
 			const ctx = c.getContext("2d");
 			c.width = vid.videoWidth;
