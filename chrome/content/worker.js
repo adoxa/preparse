@@ -95,26 +95,28 @@ function rename(script, importmap, importmeta=true) {
 	// Prefix private elements from extended classes with the new class name.
 	// E.g. "class Y extends X { #e }" becomes "#Y_e".
 	let classes = Array.from(script.matchAll(/[^$\w]([$\w]+)\s*=\s*(?:[$\w]+\))?class(?: [$\w]+)? extends|class ([$\w]+) extends/g));
-	let new_script = [script.slice(0, classes[0]?.index)];
-	for (let i = 0; i < classes.length; ++i) {
-		let id = (classes[i][1] || classes[i][2]) + "_";
-		let start = classes[i].index;
-		let end = privateRename(script, start, id, new_script);
-		// Skip nested classes.
-		while (end > classes[i+1]?.index) {
-			++i;
+	if (classes.length) {
+		let new_script = [script.slice(0, classes[0]?.index)];
+		for (let i = 0; i < classes.length; ++i) {
+			let id = (classes[i][1] || classes[i][2]) + "_";
+			let start = classes[i].index;
+			let end = privateRename(script, start, id, new_script);
+			// Skip nested classes.
+			while (end > classes[i+1]?.index) {
+				++i;
+			}
+			new_script.push(script.slice(end, classes[i+1]?.index));
 		}
-		new_script.push(script.slice(end, classes[i+1]?.index));
+		script = new_script.join("");
 	}
-	new_script = new_script.join("");
 
 	// Provide import.meta.resolve, if necessary.
-	if (importmeta && new_script.includes("import.meta.resolve")) {
+	if (importmeta && script.includes("import.meta.resolve")) {
 		let use_map = importmap ? "u=window.importmap?.[u]||u;" : "";
-		new_script = `import.meta.resolve=function(u){${use_map}return new URL(u,import.meta.url).href};` + new_script;
+		script = `import.meta.resolve=function(u){${use_map}return new URL(u,import.meta.url).href};` + script;
 	}
 
-	return new_script;
+	return script;
 }
 
 
@@ -169,8 +171,7 @@ function privateRename(script, pos, id, new_script) {
 				break;
 			}
 		} else if (ch == '#') {
-			new_script.push(script.slice(start, pos + 1));
-			new_script.push(id);
+			new_script.push(script.slice(start, pos + 1), id);
 			start = pos + 1;
 		}
 		++pos;
