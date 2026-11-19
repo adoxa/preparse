@@ -1,5 +1,5 @@
 (function() {
-	Components.utils.import("resource://preparse_js/module.js");
+	Components.utils.import("chrome://preparse/content/module.js");
 	preparse.worker = window.Worker;
 
 	const stringBundle = Services.strings.createBundle("chrome://preparse/locale/menu.properties");

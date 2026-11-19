@@ -356,7 +356,7 @@ var pp = function() {
 				new_js = event.data[0];
 				if (request.isMainDocumentChannel) {
 					new_js = checkCharset(new_js);
-					Services.scriptloader.loadSubScript("resource://preparse_js/polyfills.js", t.browser._contentWindow);
+					Services.scriptloader.loadSubScript("chrome://preparse/content/polyfills.js", t.browser._contentWindow);
 					// Special case: allow Google to work without Javascript.
 					if (request.URI.host.includes("google")) {
 						new_js = googleNoscript(new_js);
