@@ -109,6 +109,65 @@ window.preparse ??= function() {
 		};
 	}
 
+	try {
+		Intl.DateTimeFormat("en", {timeZoneName: "shortOffset"});
+	} catch (e) {
+		class PP_DTF extends Intl.DateTimeFormat {
+			constructor(locales, options) {
+				let offset;
+				if (options?.timeZoneName?.endsWith("Offset")) {
+					offset = options.timeZoneName;
+					options.timeZoneName = undefined;
+				}
+
+				super(locales, options);
+
+				if (offset) {
+					this.offset = offset;
+					// I think this locale only uses GMT names.
+					this.offsetf = new Intl.DateTimeFormat("uk", {timeZone: options?.timeZone, timeZoneName: "short"});
+				}
+			}
+
+			resolvedOptions() {
+				let options = super.resolvedOptions();
+				if (this.offset) {
+					options.timeZoneName = this.offset;
+				}
+				return options;
+			}
+
+			format(date) {
+				if (date === undefined) {
+					date = Date.now();
+				}
+				let result = super.format(date);
+
+				if (this.offset) {
+					let ofs = this.offsetf.format(date);
+					ofs = ofs.slice(ofs.lastIndexOf(","));
+					// Leave "GMT" alone.
+					if (this.offset == "longOffset" && ofs.length > 5) {
+						if (ofs.at(-3) != ":") {
+							ofs += ":00";
+						}
+						if (ofs[7] == ":") {
+							ofs = ofs.slice(0, 6) + "0" + ofs.slice(6);
+						}
+					}
+					result += ofs;
+				}
+
+				return result;
+			}
+		}
+		Intl.DateTimeFormat = function DateTimeFormat(locales, options) {
+			return new PP_DTF(locales, options);
+		};
+		Intl.DateTimeFormat.prototype = PP_DTF.prototype;
+		Intl.DateTimeFormat.supportedLocalesOf = PP_DTF.supportedLocalesOf;
+	}
+
 	let nf = {};
 	try {
 		Intl.NumberFormat("en", {style: "currency", currency: "USD", currencyDisplay: "narrowSymbol"});
