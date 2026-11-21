@@ -1,6 +1,16 @@
 window.preparse ??= function() {
 	window.reportError ??= console.error;
 
+	const console_error = console.error;
+	console.error = function error() {
+		if (arguments.length == 1 &&
+			arguments[0] instanceof TypeError &&
+			arguments[0].message.startsWith("this['#")) {
+			throw "Preparse reload";
+		}
+		return console_error(...arguments);
+	}
+
 	IDBTransaction.prototype.commit ??= function commit() {};
 
 	Blob.prototype.text ??= function text() {

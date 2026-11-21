@@ -231,7 +231,8 @@
 		var cfg = selected_config();
 		if (cfg?.state == "auto" && !cfg.active) {
 			if (event.message.startsWith("TypeError: this['#") ||
-				event.message.includes("import.meta.resolve"))
+				event.message.includes("import.meta.resolve") ||
+				event.error == "Preparse reload")
 			{
 				cfg.reload = cfg.active = true;
 				update_text();
