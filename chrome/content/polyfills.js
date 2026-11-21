@@ -1,4 +1,6 @@
 window.preparse ??= function() {
+	window.reportError ??= console.error;
+
 	IDBTransaction.prototype.commit ??= function commit() {};
 
 	Blob.prototype.text ??= function text() {
