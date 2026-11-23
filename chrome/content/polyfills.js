@@ -149,7 +149,7 @@ window.preparse ??= function() {
 				return options;
 			}
 
-			format(date) {
+			_format(date) {
 				if (date === undefined) {
 					date = Date.now();
 				}
@@ -171,6 +171,16 @@ window.preparse ??= function() {
 				}
 
 				return result;
+			}
+
+			get format() {
+				if (!this._boundFormat) {
+					var self = this;
+					this._boundFormat = function(date) {
+						return self._format(date);
+					}
+				}
+				return this._boundFormat;
 			}
 		}
 		Intl.DateTimeFormat = function DateTimeFormat(locales, options) {
@@ -265,7 +275,7 @@ window.preparse ??= function() {
 						  .replace(/JPY\s?/, "\xA5");
 			}
 
-			format(number) {
+			_format(number) {
 				let result = super.format(number);
 
 				if (this.narrow) {
@@ -285,6 +295,16 @@ window.preparse ??= function() {
 				}
 
 				return result;
+			}
+
+			get format() {
+				if (!this._boundFormat) {
+					var self = this;
+					this._boundFormat = function(date) {
+						return self._format(date);
+					}
+				}
+				return this._boundFormat;
 			}
 
 			formatToParts(number) {
