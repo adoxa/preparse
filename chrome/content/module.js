@@ -1,7 +1,7 @@
 var EXPORTED_SYMBOLS = ["preparse"];
 
 Components.utils.import("resource://gre/modules/Services.jsm");
-//Components.utils.import("resource://gre/modules/Console.jsm");
+Components.utils.import("resource://gre/modules/Console.jsm");
 Components.utils.import("chrome://preparse/content/worker.js");
 
 
@@ -335,17 +335,22 @@ var pp = function() {
 		var t = this;
 		if (t.avif) {
 			if (t.receivedData.length) {
-				var worker = new preparse.worker("chrome://preparse/content/avif.js");
-				worker.postMessage({type: "avif", data: t.receivedData}, t.receivedData);
-				worker.onmessage = function onmessage(event) {
-					if (event.data.type == "avif") {
-						decodeMov(event.data.data, t.browser._contentWindow)
-						.then(bmp => worker.postMessage({type: "bmp", ...bmp}, [bmp.data]))
-						.catch(err => worker.postMessage({type: "err", data: err}));
-					} else /* ("bmp" or "err") */ {
-						new_js = event.data.data;
-						write();
+				try {
+					var worker = new preparse.worker("chrome://preparse/content/avif.js");
+					worker.postMessage({type: "avif", data: t.receivedData}, t.receivedData);
+					worker.onmessage = function onmessage(event) {
+						if (event.data.type == "avif") {
+							decodeMov(event.data.data, t.browser._contentWindow)
+							.then(bmp => worker.postMessage({type: "bmp", ...bmp}, [bmp.data]))
+							.catch(err => worker.postMessage({type: "err", data: err}));
+						} else /* ("bmp" or "err") */ {
+							new_js = event.data.data;
+							write();
+						}
 					}
+				} catch (e) {
+					console.error("[preparse] AVIF worker failed", e);
+					new_js = "";
 				}
 			} else {
 				new_js = "";
@@ -355,7 +360,11 @@ var pp = function() {
 			[new_js, importmap] = preparseWorker(t.receivedData, t.html, t.cfg.importmap);
 			if (request.isMainDocumentChannel) {
 				new_js = checkCharset(new_js);
-				Services.scriptloader.loadSubScript("chrome://preparse/content/polyfills.js", t.browser._contentWindow);
+				try {
+					Services.scriptloader.loadSubScript("chrome://preparse/content/polyfills.js", t.browser._contentWindow);
+				} catch (e) {
+					console.error("[preparse] load polyfills failed", e);
+				}
 				// Special case: allow Google to work without Javascript.
 				if (request.URI.host.includes("google")) {
 					new_js = googleNoscript(new_js);
