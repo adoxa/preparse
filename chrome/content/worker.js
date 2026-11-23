@@ -1,10 +1,14 @@
-onmessage = function(event) {
-	var old_js = event.data[0].join("");
+var EXPORTED_SYMBOLS = ["preparseWorker"];
+
+Components.utils.import("resource://gre/modules/Console.jsm");
+
+
+function preparseWorker(data, html, importmap) {
+	var old_js = data.join("");
 	var new_js = old_js;
-	var importmap = event.data[2];
 	var imports;
 	try {
-		if (event.data[1]) { // html
+		if (html) {
 			function process(match, tag, script, tag_close) {
 				tag = tag.replaceAll("integrity", "no-integrity");
 				if (tag.includes("importmap")) {
@@ -30,8 +34,7 @@ onmessage = function(event) {
 		console.error(e);
 	}
 
-	postMessage([new_js, imports]);
-	this.close();
+	return [new_js, imports];
 }
 
 

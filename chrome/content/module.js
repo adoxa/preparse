@@ -2,6 +2,7 @@ var EXPORTED_SYMBOLS = ["preparse"];
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 //Components.utils.import("resource://gre/modules/Console.jsm");
+Components.utils.import("chrome://preparse/content/worker.js");
 
 
 preparse = {
@@ -330,67 +331,70 @@ var pp = function() {
 	};
 
 	preparseListener.prototype.spawnWorker = function(request, context, statusCode) {
-		var worker;
-		if (this.avif) {
-			worker = new preparse.worker("chrome://preparse/content/avif.js");
-			worker.postMessage({type: "avif", data: this.receivedData}, this.receivedData);
-		} else {
-			worker = new preparse.worker("chrome://preparse/content/worker.js");
-			worker.postMessage([this.receivedData, this.html, this.cfg.importmap]);
-		}
-		this.receivedData = null;
-
+		var new_js;
 		var t = this;
-		var onMessage = function(event) {
-			var new_js = "";
-			if (t.avif) {
-				if (event.data.type == "avif") {
-					decodeMov(event.data.data, t.browser._contentWindow)
-					.then(bmp => worker.postMessage({type: "bmp", ...bmp}, [bmp.data]))
-					.catch(err => worker.postMessage({type: "err", data: err}));
-					return;
-				} else /* ("bmp" or "err") */ {
-					new_js = event.data.data;
+		if (t.avif) {
+			if (t.receivedData.length) {
+				var worker = new preparse.worker("chrome://preparse/content/avif.js");
+				worker.postMessage({type: "avif", data: t.receivedData}, t.receivedData);
+				worker.onmessage = function onmessage(event) {
+					if (event.data.type == "avif") {
+						decodeMov(event.data.data, t.browser._contentWindow)
+						.then(bmp => worker.postMessage({type: "bmp", ...bmp}, [bmp.data]))
+						.catch(err => worker.postMessage({type: "err", data: err}));
+					} else /* ("bmp" or "err") */ {
+						new_js = event.data.data;
+						write();
+					}
 				}
 			} else {
-				new_js = event.data[0];
-				if (request.isMainDocumentChannel) {
-					new_js = checkCharset(new_js);
-					Services.scriptloader.loadSubScript("chrome://preparse/content/polyfills.js", t.browser._contentWindow);
-					// Special case: allow Google to work without Javascript.
-					if (request.URI.host.includes("google")) {
-						new_js = googleNoscript(new_js);
-					}
-					if (!t.cfg.active) {
-						if (event.data[1]	// has an import map
-							|| new_js.includes('generator" content="Discourse')) {
-							setActive(t.cfg, true);
-						}
-					}
-				} else if (request.URI?.spec.startsWith(GHWORKER)) {
-					// GitHub uses module workers, replace with script import.
-					// The script checks performance, which isn't available to
-					// the worker, provide it.
-					let imp = /^import ('.*')$/.exec(new_js)?.[1];
-					if (imp) {
-						new_js = `const performance={mark:()=>{}};importScripts(${imp})`;
+				new_js = "";
+			}
+		} else {
+			var importmap;
+			[new_js, importmap] = preparseWorker(t.receivedData, t.html, t.cfg.importmap);
+			if (request.isMainDocumentChannel) {
+				new_js = checkCharset(new_js);
+				Services.scriptloader.loadSubScript("chrome://preparse/content/polyfills.js", t.browser._contentWindow);
+				// Special case: allow Google to work without Javascript.
+				if (request.URI.host.includes("google")) {
+					new_js = googleNoscript(new_js);
+				}
+				if (!t.cfg.active) {
+					if (importmap || new_js.includes('generator" content="Discourse')) {
+						setActive(t.cfg, true);
 					}
 				}
-				if (event.data[1]) {
-					t.cfg.importmap = event.data[1];
-					for (let i in t.cfg.importmap) {
-						let imp = t.cfg.importmap[i];
-						if (!(imp[0] == "/" || /^\w+:/.test(imp))) {
-							let path = request.URI.filePath;
-							if (!path.endsWith("/")) {
-								path += "/../";
-							}
-							t.cfg.importmap[i] = path + imp;
-						}
-					}
-					new_js = new_js.replace("[[IMPORTMAP]]", JSON.stringify(t.cfg.importmap));
+			} else if (request.URI?.spec.startsWith(GHWORKER)) {
+				// GitHub uses module workers, replace with script import.
+				// The script checks performance, which isn't available to
+				// the worker, provide it.
+				let imp = /^import ('.*')$/.exec(new_js)?.[1];
+				if (imp) {
+					new_js = `const performance={mark:()=>{}};importScripts(${imp})`;
 				}
 			}
+			if (importmap) {
+				t.cfg.importmap = importmap;
+				for (let i in t.cfg.importmap) {
+					let imp = t.cfg.importmap[i];
+					if (!(imp[0] == "/" || /^\w+:/.test(imp))) {
+						let path = request.URI.filePath;
+						if (!path.endsWith("/")) {
+							path += "/../";
+						}
+						t.cfg.importmap[i] = path + imp;
+					}
+				}
+				new_js = new_js.replace("[[IMPORTMAP]]", JSON.stringify(t.cfg.importmap));
+			}
+		}
+		t.receivedData = null;
+		if (new_js !== undefined) {
+			write();
+		}
+
+		function write() {
 			var storageStream = CCIN("@mozilla.org/storagestream;1", "nsIStorageStream");
 			storageStream.init(8192, new_js.length, null);
 			if (new_js.length) {
@@ -417,8 +421,7 @@ var pp = function() {
 			} catch (err) {
 				// ignore .. this is after onStopRequest.. so there is not much we can do..
 			}
-		};
-		worker.onmessage = onMessage;
+		}
 	};
 
 	preparseListener.prototype.onStopRequest = function(request, context, statusCode) {
