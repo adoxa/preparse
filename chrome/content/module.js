@@ -42,8 +42,6 @@ var pp = function() {
 	const Cc = Components.classes;
 	const Ci = Components.interfaces;
 
-	const GHWORKER = "https://github.com/assets-cdn/worker/";
-
 	var state, domains_on, domains_off, contentTypes;
 	var AV1enabled = Services.prefs.getBoolPref("media.av1.enabled");
 
@@ -356,46 +354,10 @@ var pp = function() {
 				new_js = "";
 			}
 		} else {
-			var importmap;
-			[new_js, importmap] = preparseWorker(t.receivedData, t.html, t.cfg.importmap);
-			if (request.isMainDocumentChannel) {
-				new_js = checkCharset(new_js);
-				try {
-					Services.scriptloader.loadSubScript("chrome://preparse/content/polyfills.js", t.browser._contentWindow);
-				} catch (e) {
-					console.error("[preparse] load polyfills failed", e);
-				}
-				// Special case: allow Google to work without Javascript.
-				if (request.URI.host.includes("google")) {
-					new_js = googleNoscript(new_js);
-				}
-				if (!t.cfg.active) {
-					if (importmap || new_js.includes('generator" content="Discourse')) {
-						setActive(t.cfg, true);
-					}
-				}
-			} else if (request.URI?.spec.startsWith(GHWORKER)) {
-				// GitHub uses module workers, replace with script import.
-				// The script checks performance, which isn't available to
-				// the worker, provide it.
-				let imp = /^import ('.*')$/.exec(new_js)?.[1];
-				if (imp) {
-					new_js = `const performance={mark:()=>{}};importScripts(${imp})`;
-				}
-			}
-			if (importmap) {
-				t.cfg.importmap = importmap;
-				for (let i in t.cfg.importmap) {
-					let imp = t.cfg.importmap[i];
-					if (!(imp[0] == "/" || /^\w+:/.test(imp))) {
-						let path = request.URI.filePath;
-						if (!path.endsWith("/")) {
-							path += "/../";
-						}
-						t.cfg.importmap[i] = path + imp;
-					}
-				}
-				new_js = new_js.replace("[[IMPORTMAP]]", JSON.stringify(t.cfg.importmap));
+			new_js = preparseWorker(request, t);
+			if (t.activate) {
+				setActive(t.cfg, true);
+				delete t.activate;
 			}
 		}
 		t.receivedData = null;
@@ -500,45 +462,5 @@ var pp = function() {
 			window.URL.revokeObjectURL(blobURL);
 			throw err;
 		});
-	}
-
-
-	// The meta charset value must be within the first 1024 bytes, otherwise
-	// the page will reload.  With my own reload activation that causes an
-	// infinite loop (since I reset the reload flag immediately).  Copy the tag
-	// immediately after head (assuming that to be within range).
-	function checkCharset(html) {
-		let charset = /<meta [^>]*charset=[^>]+>/i.exec(html);
-		if (charset && charset.index + charset[0].length >= 1024) {
-			return html.replace(/<head[^>]*>/i, "$&" + charset[0]);
-		}
-		return html;
-	}
-
-
-	function trim(strings) {
-		return strings.raw[0].replace(/\/\/.*$/gm, "").replace(/\s{2,}/g, " ");
-	}
-
-
-	// Google searches use a noscript tag to redirect when Javascript is
-	// disabled.  Replace it so it works, with a bit of tidying up.
-	function googleNoscript(html) {
-		// Move the search options to where they should be (and remove the
-		// script that normally does the move).
-		var src = /(<div data-st-tgt="fb".*?)<script[^>]*>\(function\(\)\{var.*?frt\);\}\)\(\);<\/script><\/div>/s.exec(html);
-		if (src) {
-			html = html.replace(src[0], "");
-			html = html.replace('data-st-cnt="fb">', `$&${src[1]}</div>`);
-		}
-		return html.replace(/<noscript>.*?<\/noscript>/, trim`
-			<noscript>
-				<style>
-					g-loading-icon {
-						display: none !important;
-					}
-				</style>
-			</noscript>
-		`);
 	}
 }();

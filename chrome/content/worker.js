@@ -1,19 +1,33 @@
-var EXPORTED_SYMBOLS = ["preparseWorker"];
+var EXPORTED_SYMBOLS = ["preparseWorker", "GHWORKER"];
 
+Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/Console.jsm");
 
+const GHWORKER = "https://github.com/assets-cdn/worker/";
 
-function preparseWorker(data, html, importmap) {
-	var old_js = data.join("");
+
+function preparseWorker(request, listener) {
+	var importmap = listener.cfg.importmap;
+	var old_js = listener.receivedData.join("");
 	var new_js = old_js;
-	var imports;
 	try {
-		if (html) {
+		if (listener.html) {
 			function process(match, tag, script, tag_close) {
 				tag = tag.replaceAll("integrity", "no-integrity");
 				if (tag.includes("importmap")) {
-					imports = importmap = JSON.parse(script).imports;
-					script = "window.importmap = [[IMPORTMAP]]";
+					importmap = JSON.parse(script).imports;
+					for (let i in importmap) {
+						let imp = importmap[i];
+						if (!(imp[0] == "/" || /^\w+:/.test(imp))) {
+							let path = request.URI.filePath;
+							if (!path.endsWith("/")) {
+								path += "/../";
+							}
+							importmap[i] = path + imp;
+						}
+					}
+					listener.cfg.importmap = importmap;
+					script = "window.importmap = " + JSON.stringify(importmap);
 					tag = tag.replace("importmap", "");
 				} else if (script.length) {
 					script = rename(script, importmap, false);
@@ -28,13 +42,39 @@ function preparseWorker(data, html, importmap) {
 				new_js = old_js.replaceAll("window.unsupportedBrowser = true", "");
 			} else {
 				new_js = rename(old_js, importmap);
+				if (request.URI?.spec.startsWith(GHWORKER)) {
+					// GitHub uses module workers, replace with script import.
+					// The script checks performance, which isn't available to
+					// the worker, provide it.
+					let imp = /^import ('.*')$/.exec(new_js)?.[1];
+					if (imp) {
+						new_js = `const performance={mark:()=>{}};importScripts(${imp})`;
+					}
+				}
+			}
+		}
+		if (request.isMainDocumentChannel) {
+			try {
+				Services.scriptloader.loadSubScript("chrome://preparse/content/polyfills.js", listener.browser._contentWindow);
+			} catch (e) {
+				console.error("[preparse] load polyfills failed", e);
+			}
+			new_js = checkCharset(new_js);
+			// Special case: allow Google to work without Javascript.
+			if (request.URI.host.includes("google")) {
+				new_js = googleNoscript(new_js);
+			}
+			if (!listener.cfg.active) {
+				if (importmap || new_js.includes('generator" content="Discourse')) {
+					listener.activate = true;
+				}
 			}
 		}
 	} catch (e) {
 		console.error(e);
 	}
 
-	return [new_js, imports];
+	return new_js;
 }
 
 
@@ -66,9 +106,6 @@ function rename(script, importmap, importmeta=true) {
 		}
 		script = script.replaceAll(/(from|import)\s*(['"])(.*?)\2/g, map_import);
 		if (/\bimport\(/.test(script)) {
-			function trim(strings) {
-				return strings.raw[0].replace(/\/\/.*$/gm, "").replace(/\s{2,}/g, " ");
-			}
 			script = trim`function importPP(name) {
 				if (window.importmap && typeof name == "string" && !/^https?:/.test(name)) {
 					if (name in window.importmap) {
@@ -234,4 +271,44 @@ function addTableFormIds(html) {
 	}
 	new_html.push(html.slice(start));
 	return new_html.join("");
+}
+
+
+// The meta charset value must be within the first 1024 bytes, otherwise
+// the page will reload.  With my own reload activation that causes an
+// infinite loop (since I reset the reload flag immediately).  Copy the tag
+// immediately after head (assuming that to be within range).
+function checkCharset(html) {
+	let charset = /<meta [^>]*charset=[^>]+>/i.exec(html);
+	if (charset && charset.index + charset[0].length >= 1024) {
+		return html.replace(/<head[^>]*>/i, "$&" + charset[0]);
+	}
+	return html;
+}
+
+
+function trim(strings) {
+	return strings.raw[0].replace(/\/\/.*$/gm, "").replace(/\s{2,}/g, " ");
+}
+
+
+// Google searches use a noscript tag to redirect when Javascript is
+// disabled.  Replace it so it works, with a bit of tidying up.
+function googleNoscript(html) {
+	// Move the search options to where they should be (and remove the
+	// script that normally does the move).
+	var src = /(<div data-st-tgt="fb".*?)<script[^>]*>\(function\(\)\{var.*?tor\);\}\)\(\);<\/script><\/div>/s.exec(html);
+	if (src) {
+		html = html.replace(src[0], "");
+		html = html.replace('data-st-cnt="fb">', `$&${src[1]}</div>`);
+	}
+	return html.replace(/<noscript>.*?<\/noscript>/, trim`
+		<noscript>
+			<style>
+				g-loading-icon {
+					display: none !important;
+				}
+			</style>
+		</noscript>
+	`);
 }
